@@ -1,0 +1,33 @@
+@startuml
+skinparam dpi 200
+skinparam componentStyle rectangle
+skinparam defaultFontName Arial
+skinparam backgroundColor white
+title Alternativa A (descartada): AireMisti IoT como monolito en capas con ingesta HTTP
+node "Sensor PM10 / PM2.5" as S
+actor "Ciudadano" as C
+actor "Analista municipal" as AN
+node "Servidor VPS" {
+  package "Monolito en capas (Django)" {
+    [Capa de presentación\n(API REST + mapa)] as P
+    [Capa de lógica de negocio\n(servicios compartidos)] as L
+    [Capa de acceso a datos\n(ORM, modelos compartidos)] as D
+  }
+}
+database "PostgreSQL\n(esquema único)" as DB
+cloud "Telegram Bot API" as TG
+S --> P : POST /lecturas (HTTP)
+C --> P
+AN --> P
+P --> L
+L --> D
+D --> DB
+L ..> TG : alerta síncrona
+note right of P
+  Puntaje 3,95 frente a 4,50 del monolito modular.
+  Sin broker: si la API se reinicia, la lectura
+  depende solo de los reintentos del sensor (QA-03).
+  Ingesta, alertas y mapa comparten modelos y
+  transacciones, lo que dificulta agregar sensores.
+end note
+@enduml
