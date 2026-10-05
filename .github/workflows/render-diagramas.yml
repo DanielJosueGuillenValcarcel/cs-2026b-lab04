@@ -1,0 +1,44 @@
+name: Regenerar diagramas
+
+on:
+  push:
+    paths:
+      - "docs/architecture/diagramas/**.mmd"
+      - "docs/architecture/diagramas/**.puml"
+      - "docs/architecture/diagramas/**.py"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar herramientas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz plantuml
+          npm install -g @mermaid-js/mermaid-cli
+          pip install diagrams matplotlib
+      - name: Renderizar
+        working-directory: docs/architecture/diagramas
+        run: |
+          echo '{"args":["--no-sandbox"]}' > /tmp/puppeteer.json
+          for f in *.mmd; do mmdc -p /tmp/puppeteer.json -i "$f" -o "img/${f%.mmd}.png" -s 3 -b white; done
+          plantuml -tpng -o img *.puml
+          python despliegue.py
+          python matriz.py
+      - name: Commit de imágenes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/diagramas/img
+          git diff --cached --quiet || git commit -m "CI: regenerar imágenes de diagramas"
+          git push
