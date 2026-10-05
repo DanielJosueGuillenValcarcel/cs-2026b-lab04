@@ -1,6 +1,7 @@
 name: Regenerar diagramas
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "docs/architecture/diagramas/**.mmd"
