@@ -1,0 +1,17 @@
+stateDiagram-v2
+    [*] --> ACTIVO : darDeAlta() [credenciales MQTT emitidas]
+    ACTIVO --> SIN_SENAL : marcarSinSenal() [sin lecturas por más de 10 min]
+    SIN_SENAL --> ACTIVO : registrarLectura() [lote de una sola lectura]
+    SIN_SENAL --> SINCRONIZANDO : iniciarSincronizacion() [lote con backlog]
+    SINCRONIZANDO --> ACTIVO : completarSincronizacion() [backlog guardado]
+    ACTIVO --> MANTENIMIENTO : enviarAMantenimiento()
+    SIN_SENAL --> MANTENIMIENTO : enviarAMantenimiento() [sin señal por más de 24 h]
+    MANTENIMIENTO --> ACTIVO : reactivar() [calibración vigente]
+    MANTENIMIENTO --> BAJA : darDeBaja()
+    SIN_SENAL --> BAJA : darDeBaja()
+    BAJA --> [*]
+    note right of SIN_SENAL
+        Una tarea programada (Celery beat)
+        revisa ultimaLecturaEn cada minuto
+        y avisa al analista (RF-07)
+    end note
