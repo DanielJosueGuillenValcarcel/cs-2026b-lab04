@@ -1,0 +1,80 @@
+@startuml secuencia-ingesta-alerta
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 160
+autonumber
+title AireMisti IoT — Ingesta de una lectura y emisión de alerta (HU-03)
+
+actor "Dispositivo\nPM10 / PM2.5" as D
+participant "Broker MQTT\n(Mosquitto)" as B
+participant "ConsumidorMqtt" as C
+participant "ServicioIngesta" as S
+participant "RepositorioSensores" as RS
+participant ":Sensor" as SE
+participant ":Lectura" as L
+participant "RepositorioLecturas" as RL
+participant "ServicioAlertas" as SA
+participant "RepositorioAlertas" as RA
+participant ":Alerta" as A
+participant "CanalAlertas\n(TelegramAdapter)" as CA
+
+D -> B : PUBLISH airemisti/{codigo}/lecturas (QoS 1)
+B -> C : alRecibirMensaje(tema, payload)
+C -> S : procesarLote(codigo, datos)
+S -> RS : buscarPorCodigo(codigo)
+RS --> S : sensor
+S -> SE : estaHabilitado()
+SE --> S : habilitado
+
+alt sensor registrado y habilitado
+  opt lote con backlog y sensor en SIN_SENAL
+    S -> SE : iniciarSincronizacion()
+  end
+  loop por cada lectura del lote
+    create L
+    S -> L : <<create>> (pm10, pm25, medidoEn)
+    S -> L : esValida()
+    L --> S : true
+    S -> L : superaUmbral(150)
+    L --> S : supera
+  end
+  S -> RL : guardarLote(lecturas)
+  note right of RL
+    INSERT ... ON CONFLICT
+    (sensor_id, medido_en) DO NOTHING
+    (ADR-002: sin duplicados)
+  end note
+  RL --> S : insertadas
+  S -> SE : registrarLectura(ultimoMedidoEn)
+  opt sensor en SINCRONIZANDO
+    S -> SE : completarSincronizacion()
+  end
+  S -> RS : guardar(sensor)
+  opt alguna lectura con PM10 > 150
+    S ->> SA : evaluar(lecturaMax, distrito)
+    note right of SA : encolado en Celery (Redis);\nno bloquea el PUBACK
+  end
+  S --> C : insertadas
+  C --> B : PUBACK
+else sensor no registrado o en BAJA
+  S --> C : 0 (intento registrado en el log)
+  C --> B : PUBACK (mensaje descartado)
+end
+
+== Worker Celery (asíncrono) ==
+SA -> RA : alertaActiva(distrito)
+RA --> SA : alerta o null
+alt no hay alerta vigente en el distrito
+  create A
+  SA -> A : <<create>> (distrito, lectura)
+  SA -> RA : guardar(alerta)
+  SA -> CA : publicar(alerta)
+  CA -> A : mensaje()
+  A --> CA : texto
+  CA --> SA : publicada
+else ya hay alerta vigente
+  SA -> A : extender(lectura)
+  SA -> RA : guardar(alerta)
+end
+@enduml
