@@ -1,0 +1,99 @@
+@startuml classes_airemisti
+set namespaceSeparator none
+class "Alerta" as airemisti.alertas.dominio.Alerta {
+  distrito : str
+  emitida_en : datetime
+  estado
+  id : UUID
+  lecturas : list[Lectura]
+  pm10_max
+  vigente_hasta : datetime | None
+  confirmar() -> None
+  extender(lectura: Lectura) -> None
+  mensaje() -> str
+  retirar(motivo: str) -> None
+}
+class "CanalAlertas" as airemisti.alertas.dominio.CanalAlertas {
+  {abstract}publicar(a: Alerta) -> None
+}
+class "ConsumidorMqtt" as airemisti.ingesta.consumidor.ConsumidorMqtt {
+  servicio
+  tema : str
+  al_recibir_mensaje(tema: str, payload: bytes) -> None
+}
+class "EstadoAlerta" as airemisti.alertas.dominio.EstadoAlerta {
+  name
+}
+class "EstadoSensor" as airemisti.sensores.dominio.EstadoSensor {
+  name
+}
+class "Lectura" as airemisti.lecturas.dominio.Lectura {
+  id : int | None
+  medido_en : datetime
+  pm10
+  pm25
+  recibido_en : datetime
+  sensor_id : UUID
+  es_valida() -> bool
+  supera_umbral(umbral: Decimal) -> bool
+}
+class "RepositorioAlertas" as airemisti.alertas.dominio.RepositorioAlertas {
+  {abstract}alerta_activa(distrito: str) -> Alerta | None
+  {abstract}guardar(a: Alerta) -> None
+}
+class "RepositorioLecturas" as airemisti.lecturas.dominio.RepositorioLecturas {
+  {abstract}guardar_lote(lecturas: list[Lectura]) -> int
+}
+class "RepositorioSensores" as airemisti.sensores.dominio.RepositorioSensores {
+  {abstract}buscar_por_codigo(codigo: str) -> Sensor | None
+  {abstract}guardar(s: Sensor) -> None
+}
+class "Sensor" as airemisti.sensores.dominio.Sensor {
+  codigo : str
+  estado : EstadoSensor | None
+  id : UUID
+  ubicacion
+  ultima_lectura_en : datetime | None
+  completar_sincronizacion() -> None
+  dar_de_alta() -> None
+  dar_de_baja(motivo: str) -> None
+  enviar_a_mantenimiento(motivo: str) -> None
+  esta_habilitado() -> bool
+  iniciar_sincronizacion() -> None
+  marcar_sin_senal() -> None
+  reactivar() -> None
+  registrar_lectura(medido_en: datetime) -> None
+}
+class "ServicioAlertas" as airemisti.alertas.servicio.ServicioAlertas {
+  canal
+  repositorio
+  umbral_pm10
+  evaluar(lectura: Lectura, distrito: str) -> Alerta | None
+}
+class "ServicioIngesta" as airemisti.ingesta.servicio.ServicioIngesta {
+  encolar_alerta : Callable[[Lectura, str], None]
+  lecturas
+  sensores
+  procesar_lote(codigo_sensor: str, datos: list[dict[str, Any]]) -> int
+}
+class "TelegramAdapter" as airemisti.alertas.adaptadores.TelegramAdapter {
+  chat_id : str
+  token : str
+  {abstract}publicar(a: Alerta) -> None
+}
+class "<color:red>TransicionInvalida</color>" as airemisti.compartido.errores.TransicionInvalida {
+}
+class "Ubicacion" as airemisti.sensores.dominio.Ubicacion {
+  distrito : str
+  latitud
+  longitud
+}
+airemisti.alertas.adaptadores.TelegramAdapter --|> airemisti.alertas.dominio.CanalAlertas
+airemisti.alertas.dominio.Alerta --> airemisti.alertas.dominio.EstadoAlerta : estado
+airemisti.sensores.dominio.Sensor --> airemisti.sensores.dominio.Ubicacion : ubicacion
+airemisti.alertas.dominio.CanalAlertas --o airemisti.alertas.servicio.ServicioAlertas : canal
+airemisti.alertas.dominio.RepositorioAlertas --o airemisti.alertas.servicio.ServicioAlertas : repositorio
+airemisti.ingesta.servicio.ServicioIngesta --o airemisti.ingesta.consumidor.ConsumidorMqtt : servicio
+airemisti.lecturas.dominio.RepositorioLecturas --o airemisti.ingesta.servicio.ServicioIngesta : lecturas
+airemisti.sensores.dominio.RepositorioSensores --o airemisti.ingesta.servicio.ServicioIngesta : sensores
+@enduml
