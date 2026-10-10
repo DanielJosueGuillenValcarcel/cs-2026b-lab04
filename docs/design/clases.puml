@@ -1,0 +1,122 @@
+@startuml clases
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam nodesep 30
+skinparam ranksep 45
+title AireMisti IoT — Módulos Ingesta, Sensores, Lecturas y Alertas (diseño)
+
+package "sensores" {
+  class Sensor {
+    - id: UUID
+    - codigo: String
+    - estado: EstadoSensor
+    - ultimaLecturaEn: DateTime
+    + darDeAlta(): void
+    + registrarLectura(medidoEn: DateTime): void
+    + marcarSinSenal(): void
+    + iniciarSincronizacion(): void
+    + completarSincronizacion(): void
+    + enviarAMantenimiento(motivo: String): void
+    + reactivar(): void
+    + darDeBaja(motivo: String): void
+    + estaHabilitado(): bool
+  }
+  class Ubicacion {
+    - latitud: Decimal
+    - longitud: Decimal
+    - distrito: String
+  }
+  enum EstadoSensor {
+    ACTIVO
+    SIN_SENAL
+    SINCRONIZANDO
+    MANTENIMIENTO
+    BAJA
+  }
+  interface RepositorioSensores <<puerto>> {
+    + buscarPorCodigo(codigo: String): Sensor
+    + guardar(s: Sensor): void
+  }
+}
+
+package "lecturas" {
+  class Lectura {
+    - id: int
+    - pm10: Decimal
+    - pm25: Decimal
+    - medidoEn: DateTime
+    - recibidoEn: DateTime
+    + esValida(): bool
+    + superaUmbral(umbral: Decimal): bool
+  }
+  interface RepositorioLecturas <<puerto>> {
+    + guardarLote(lecturas: List<Lectura>): int
+  }
+}
+
+package "alertas" {
+  class Alerta {
+    - id: UUID
+    - distrito: String
+    - pm10Max: Decimal
+    - emitidaEn: DateTime
+    - vigenteHasta: DateTime
+    - estado: EstadoAlerta
+    + extender(lectura: Lectura): void
+    + confirmar(): void
+    + retirar(motivo: String): void
+    + mensaje(): String
+  }
+  enum EstadoAlerta {
+    EMITIDA
+    CONFIRMADA
+    RETIRADA
+  }
+  class ServicioAlertas <<servicio>> {
+    - umbralPm10: Decimal = 150
+    + evaluar(lectura: Lectura, distrito: String): Alerta
+  }
+  interface RepositorioAlertas <<puerto>> {
+    + alertaActiva(distrito: String): Alerta
+    + guardar(a: Alerta): void
+  }
+  interface CanalAlertas <<puerto>> {
+    + publicar(a: Alerta): void
+  }
+  class TelegramAdapter <<adaptador>>
+}
+
+package "ingesta" {
+  class ServicioIngesta <<servicio>> {
+    + procesarLote(codigoSensor: String, datos: List<Dict>): int
+  }
+  class ConsumidorMqtt <<adaptador>> {
+    - tema: String = "airemisti/+/lecturas"
+    + alRecibirMensaje(tema: String, payload: bytes): void
+  }
+}
+
+Sensor "1" *-- "1" Ubicacion : se ubica en >
+Sensor "0..*" --> "1" EstadoSensor
+Sensor "1" -- "0..*" Lectura : registra >
+Alerta "0..1" o-- "1..*" Lectura : sustentada por >
+Alerta "0..*" --> "1" EstadoAlerta
+CanalAlertas <|.. TelegramAdapter
+ConsumidorMqtt "1" --> "1" ServicioIngesta : delega >
+ServicioIngesta ..> RepositorioSensores
+ServicioIngesta ..> RepositorioLecturas
+ServicioIngesta ..> Lectura : crea
+ServicioIngesta ..> ServicioAlertas : encola (Celery)
+ServicioAlertas ..> RepositorioAlertas
+ServicioAlertas ..> CanalAlertas
+ServicioAlertas ..> Alerta : crea
+
+note bottom of ServicioIngesta
+  Supuesto: el payload MQTT trae
+  1..* lecturas (la actual o el
+  backlog guardado en la microSD).
+end note
+@enduml
