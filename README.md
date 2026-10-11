@@ -64,6 +64,47 @@ flowchart TB
 - [ADR-002: Almacenamiento de lecturas en PostgreSQL particionado](docs/architecture/adr/002-almacenamiento-lecturas.md)
 - [ADR-003: Ingesta por MQTT con QoS 1 y credenciales por sensor](docs/architecture/adr/003-protocolo-ingesta.md)
 
+## Diseño UML (Lab 05)
+Diseño detallado de la historia crítica [HU-03: ingesta de una lectura y emisión de alerta](docs/design/historia.md), coherente con el ADR-001.
+
+### Máquina de estados del Sensor
+```mermaid
+stateDiagram-v2
+    [*] --> ACTIVO : darDeAlta() [credenciales MQTT emitidas]
+    ACTIVO --> SIN_SENAL : marcarSinSenal() [sin lecturas por más de 10 min]
+    SIN_SENAL --> ACTIVO : registrarLectura() [lote de una sola lectura]
+    SIN_SENAL --> SINCRONIZANDO : iniciarSincronizacion() [lote con backlog]
+    SINCRONIZANDO --> ACTIVO : completarSincronizacion() [backlog guardado]
+    ACTIVO --> MANTENIMIENTO : enviarAMantenimiento()
+    SIN_SENAL --> MANTENIMIENTO : enviarAMantenimiento() [sin señal por más de 24 h]
+    MANTENIMIENTO --> ACTIVO : reactivar() [calibración vigente]
+    MANTENIMIENTO --> BAJA : darDeBaja()
+    SIN_SENAL --> BAJA : darDeBaja()
+    BAJA --> [*]
+    note right of SIN_SENAL
+        Una tarea programada (Celery beat)
+        revisa ultimaLecturaEn cada minuto
+        y avisa al analista (RF-07)
+    end note
+```
+
+### Diagramas
+| Diagrama | Código | Imagen |
+|---|---|---|
+| Clases (E1) | [clases.puml](docs/design/clases.puml) | [PNG](docs/design/img/clases.png) |
+| Secuencia (E2) | [secuencia-ingesta-alerta.puml](docs/design/secuencia-ingesta-alerta.puml) | [PNG](docs/design/img/secuencia-ingesta-alerta.png) |
+| Estados (E3) | [estados-sensor.mmd](docs/design/estados-sensor.mmd) | [PNG](docs/design/img/estados-sensor.png) |
+| Actividades (E4) | [actividades-emitir-alerta.puml](docs/design/actividades-emitir-alerta.puml) | [PNG](docs/design/img/actividades-emitir-alerta.png) |
+| Paquetes (E5) | [paquetes.puml](docs/design/paquetes.puml) | [PNG](docs/design/img/paquetes.png) |
+| Ingeniería inversa (E6) | [classes_airemisti.puml](docs/design/classes_airemisti.puml) | [PNG](docs/design/img/classes_airemisti.png) |
+
+### Documentos
+- [Round-trip diagrama ↔ código](docs/design/round-trip.md) y esqueleto en [`src/airemisti/`](src/airemisti)
+- [Revisión de consistencia C1–C5](docs/design/consistencia.md)
+- [Bitácora de IA del Lab 05](docs/design/bitacora-ia.md)
+
+Pruebas: `PYTHONPATH=src pytest tests` (criterios de HU-03 y una prueba por transición del Sensor).
+
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.
 Sin embargo, mostró un sesgo hacia tecnologías de moda: recomendó Kafka para 40 sensores, cuando un cálculo simple muestra apenas 0,67 lecturas por segundo.
