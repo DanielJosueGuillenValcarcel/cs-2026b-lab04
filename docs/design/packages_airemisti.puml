@@ -1,0 +1,45 @@
+@startuml packages_airemisti
+set namespaceSeparator none
+package "airemisti" as airemisti {
+}
+package "airemisti.alertas" as airemisti.alertas {
+}
+package "airemisti.alertas.adaptadores" as airemisti.alertas.adaptadores {
+}
+package "airemisti.alertas.dominio" as airemisti.alertas.dominio {
+}
+package "airemisti.alertas.servicio" as airemisti.alertas.servicio {
+}
+package "airemisti.compartido" as airemisti.compartido {
+}
+package "airemisti.compartido.errores" as airemisti.compartido.errores {
+}
+package "airemisti.compartido.parametros" as airemisti.compartido.parametros {
+}
+package "airemisti.ingesta" as airemisti.ingesta {
+}
+package "airemisti.ingesta.consumidor" as airemisti.ingesta.consumidor {
+}
+package "airemisti.ingesta.servicio" as airemisti.ingesta.servicio {
+}
+package "airemisti.lecturas" as airemisti.lecturas {
+}
+package "airemisti.lecturas.dominio" as airemisti.lecturas.dominio {
+}
+package "airemisti.sensores" as airemisti.sensores {
+}
+package "airemisti.sensores.dominio" as airemisti.sensores.dominio {
+}
+airemisti.alertas.adaptadores --> airemisti.alertas.dominio
+airemisti.alertas.dominio --> airemisti.compartido.errores
+airemisti.alertas.dominio --> airemisti.compartido.parametros
+airemisti.alertas.dominio --> airemisti.lecturas.dominio
+airemisti.alertas.servicio --> airemisti.alertas.dominio
+airemisti.alertas.servicio --> airemisti.compartido.parametros
+airemisti.alertas.servicio --> airemisti.lecturas.dominio
+airemisti.ingesta.consumidor --> airemisti.ingesta.servicio
+airemisti.ingesta.servicio --> airemisti.compartido.parametros
+airemisti.ingesta.servicio --> airemisti.lecturas.dominio
+airemisti.ingesta.servicio --> airemisti.sensores.dominio
+airemisti.sensores.dominio --> airemisti.compartido.errores
+@enduml
