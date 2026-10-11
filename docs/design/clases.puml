@@ -76,7 +76,7 @@ package "alertas" {
     RETIRADA
   }
   class ServicioAlertas <<servicio>> {
-    - umbralPm10: Decimal = 150
+    - umbralPm10: Decimal = UMBRAL_PM10
     + evaluar(lectura: Lectura, distrito: String): Alerta
   }
   interface RepositorioAlertas <<puerto>> {

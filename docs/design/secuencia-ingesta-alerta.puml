@@ -36,7 +36,7 @@ alt sensor registrado y habilitado
     S -> L : <<create>> (pm10, pm25, medidoEn)
     S -> L : esValida()
     L --> S : true
-    S -> L : superaUmbral(150)
+    S -> L : superaUmbral(UMBRAL_PM10)
     L --> S : supera
   end
   S -> RL : guardarLote(lecturas)
@@ -51,7 +51,7 @@ alt sensor registrado y habilitado
     S -> SE : completarSincronizacion()
   end
   S -> RS : guardar(sensor)
-  opt alguna lectura con PM10 > 150
+  opt alguna lectura con PM10 > UMBRAL_PM10 (150)
     S ->> SA : evaluar(lecturaMax, distrito)
     note right of SA : encolado en Celery (Redis);\nno bloquea el PUBACK
   end

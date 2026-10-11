@@ -1,0 +1,48 @@
+@startuml actividades-emitir-alerta
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam ActivityBackgroundColor #EEF2F8
+skinparam ActivityBorderColor #1A3A5C
+title AireMisti IoT — Emisión y difusión de una alerta pública
+
+|Sensor|
+start
+:Publica la lectura PM10 / PM2.5;
+|Sistema|
+:Guarda la lectura (sin duplicados);
+if (¿PM10 > 150 µg/m³?) then (sí)
+  if (¿Hay una alerta vigente en el distrito?) then (sí)
+    :Extiende la alerta vigente\n(no repite el aviso);
+    stop
+  else (no)
+    :Crea la alerta;
+    fork
+      :Publica el aviso en el\ncanal de Telegram;
+      |Ciudadano|
+      :Recibe el aviso y consulta\nel mapa (60 s o menos);
+    fork again
+      |Sistema|
+      :Marca el sensor en rojo\nen el mapa público;
+    fork again
+      |Sistema|
+      :Notifica al analista\nmunicipal;
+    end fork
+  endif
+else (no)
+  :Actualiza el mapa público;
+  stop
+endif
+|Analista municipal|
+:Revisa la alerta y el\nhistórico del sensor;
+if (¿La lectura es plausible?) then (sí)
+  :Confirma la alerta;
+  stop
+else (no)
+  :Retira la alerta y envía el\nsensor a mantenimiento;
+  |Sistema|
+  :Publica una rectificación\nen el canal;
+  |Ciudadano|
+  :Recibe la rectificación;
+  stop
+endif
+@enduml

@@ -7,6 +7,8 @@ on:
       - "docs/architecture/diagramas/**.mmd"
       - "docs/architecture/diagramas/**.puml"
       - "docs/architecture/diagramas/**.py"
+      - "docs/design/**.mmd"
+      - "docs/design/**.puml"
 
 permissions:
   contents: write
@@ -36,10 +38,16 @@ jobs:
           plantuml -tpng -o img *.puml
           python despliegue.py
           python matriz.py
+      - name: Renderizar diseño UML (Lab 05)
+        working-directory: docs/design
+        run: |
+          shopt -s nullglob
+          for f in *.mmd; do mmdc -p /tmp/puppeteer.json -i "$f" -o "img/${f%.mmd}.png" -s 3 -b white; done
+          plantuml -tpng -o img *.puml
       - name: Commit de imágenes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/diagramas/img
+          git add docs/architecture/diagramas/img docs/design/img
           git diff --cached --quiet || git commit -m "CI: regenerar imágenes de diagramas"
           git push
