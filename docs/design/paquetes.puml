@@ -1,0 +1,38 @@
+@startuml paquetes
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam packageStyle rectangle
+title AireMisti IoT — Paquetes del monolito modular (vista de desarrollo)
+
+package "airemisti" {
+  package "ingesta" as ING
+  package "sensores" as SEN
+  package "lecturas" as LEC
+  package "alertas" as ALE
+  package "mapa" as MAP
+  package "compartido" as COM
+}
+
+ING ..> SEN : usa RepositorioSensores\ny Sensor
+ING ..> LEC : usa RepositorioLecturas\ny Lectura
+ING ..> ALE : encola ServicioAlertas.evaluar\n(tarea Celery inyectada)
+ALE ..> LEC : usa Lectura
+MAP ..> SEN : solo lectura
+MAP ..> LEC : solo lectura
+MAP ..> ALE : solo lectura
+ING ..> COM
+SEN ..> COM
+LEC ..> COM
+ALE ..> COM
+MAP ..> COM
+
+note bottom of LEC
+  Regla (ADR-001): sin dependencias cíclicas.
+  lecturas y sensores no dependen de otro módulo de negocio;
+  alertas no conoce a ingesta;
+  mapa solo lee y nadie depende de mapa.
+  UMBRAL_PM10 vive en compartido (lo usan ingesta y alertas).
+  Verificado con el diagrama de paquetes que
+  pyreverse obtiene del código (packages_airemisti.puml).
+end note
+@enduml
