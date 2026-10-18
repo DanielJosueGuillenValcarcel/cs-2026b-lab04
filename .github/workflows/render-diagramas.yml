@@ -10,6 +10,8 @@ on:
       - "docs/architecture/diagramas/**.py"
       - "docs/design/**.mmd"
       - "docs/design/**.puml"
+      - "docs/architecture/c4/**.dsl"
+      - "docs/architecture/c4/**.puml"
 
 concurrency:
   group: render-${{ github.ref }}
@@ -29,6 +31,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Validar modelo C4 (Lab 06)
+        run: |
+          curl -sSL -o /tmp/structurizr.zip https://github.com/structurizr/cli/releases/download/v2025.05.28/structurizr-cli.zip
+          mkdir -p /tmp/structurizr && unzip -q /tmp/structurizr.zip -d /tmp/structurizr
+          chmod +x /tmp/structurizr/structurizr.sh
+          /tmp/structurizr/structurizr.sh validate -w docs/architecture/c4/workspace.dsl
       - name: Instalar herramientas
         run: |
           sudo apt-get update
@@ -49,11 +61,20 @@ jobs:
           shopt -s nullglob
           for f in *.mmd; do mmdc -p /tmp/puppeteer.json -i "$f" -o "img/${f%.mmd}.png" -s 3 -b white; done
           plantuml -tpng -o img *.puml
+      - name: Exportar y renderizar vistas C4 (Lab 06)
+        working-directory: docs/architecture/c4
+        run: |
+          curl -sSL -o /tmp/plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2025.4/plantuml-1.2025.4.jar
+          rm -f export/*.puml export/*.mmd
+          /tmp/structurizr/structurizr.sh export -w workspace.dsl -f plantuml/c4plantuml -o export
+          /tmp/structurizr/structurizr.sh export -w workspace.dsl -f mermaid -o export
+          java -jar /tmp/plantuml.jar -tpng -o ../img export/*.puml
+          java -jar /tmp/plantuml.jar -tpng -o img contexto-manual.puml
       - name: Commit de imágenes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/diagramas/img docs/design/img
+          git add docs/architecture/diagramas/img docs/design/img docs/architecture/c4/export docs/architecture/c4/img
           git diff --cached --quiet && exit 0
           git commit -m "CI: regenerar imágenes de diagramas"
           git pull --rebase origin "${GITHUB_REF_NAME}"
