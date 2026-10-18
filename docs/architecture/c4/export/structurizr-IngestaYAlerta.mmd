@@ -1,0 +1,37 @@
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["Vista dinámica — Ingesta de una lectura y emisión de alerta"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    subgraph 3 ["AireMisti IoT"]
+      style 3 fill:#ffffff,stroke:#0b4884,color:#0b4884
+
+      11["<div style='font-weight: bold'>Worker Celery</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery]</div><div style='font-size: 80%; margin-top:10px'>Evalúa el umbral, crea y<br />publica las alertas, y revisa<br />los sensores sin señal<br />(RF-07).</div>"]
+      style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      12["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto (QoS 1, persistente, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de los<br />sensores y las retiene si la<br />ingesta no está disponible.</div>"]
+      style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      13[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes y<br />alertas; un esquema por<br />módulo.</div>")]
+      style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      14[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y cola de tareas de Celery.</div>")]
+      style 14 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      5["<div style='font-weight: bold'>Monolito Django</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Django + Gunicorn]</div><div style='font-size: 80%; margin-top:10px'>Monolito modular: API REST,<br />vistas web y proceso de<br />ingesta suscrito al broker.</div>"]
+      style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    end
+
+    1["<div style='font-weight: bold'>Ciudadano</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Vecino de Arequipa que<br />consulta la calidad del aire<br />y recibe alertas.</div>"]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    15["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    16["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+
+    15-. "<div>1. Publica la lectura con QoS<br />1</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->12
+    5-. "<div>2. Consume la lectura de su<br />suscripción</div><div style='font-size: 70%'>[MQTT]</div>" .->12
+    5-. "<div>3. Guarda el lote con ON<br />CONFLICT DO NOTHING</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->13
+    5-. "<div>4. Actualiza la última<br />lectura y encola evaluar()</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
+    11-. "<div>5. Toma la tarea de la cola</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
+    11-. "<div>6. Registra la alerta del<br />distrito</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->13
+    11-. "<div>7. Publica la alerta</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->16
+    16-. "<div>8. Notifica a los<br />suscriptores del canal</div><div style='font-size: 70%'></div>" .->1
+  end
