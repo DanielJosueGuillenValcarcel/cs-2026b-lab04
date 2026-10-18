@@ -1,0 +1,22 @@
+@startuml contexto-manual
+!include <C4/C4_Context>
+skinparam dpi 150
+LAYOUT_LEFT_RIGHT()
+title Contexto de AireMisti IoT (C4-PlantUML escrito a mano)
+
+Person(ciudadano, "Ciudadano", "Vecino de Arequipa que consulta la calidad del aire")
+Person(analista, "Analista municipal", "Registra sensores y descarga el histórico")
+System_Ext(sensores, "Red de sensores PM10 / PM2.5", "40 sensores con WiFi/4G y microSD")
+System(airemisti, "AireMisti IoT", "Mapa de calidad del aire y alertas públicas")
+System_Ext(telegram, "Telegram Bot API", "Canal público de alertas")
+System_Ext(osm, "OpenStreetMap", "Teselas del mapa base")
+
+Rel(sensores, airemisti, "Envía lecturas cada minuto", "MQTT/TLS")
+Rel(ciudadano, airemisti, "Consulta el mapa")
+Rel(analista, airemisti, "Registra sensores y descarga el histórico")
+Rel(airemisti, telegram, "Publica alertas", "HTTPS/JSON")
+Rel(airemisti, osm, "Obtiene teselas", "HTTPS")
+Rel(telegram, ciudadano, "Notifica las alertas")
+
+SHOW_LEGEND()
+@enduml

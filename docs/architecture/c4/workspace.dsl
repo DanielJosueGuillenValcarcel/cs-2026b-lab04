@@ -57,6 +57,36 @@ workspace "AireMisti IoT" "Modelo C4 de la red de monitoreo de calidad del aire 
         airemisti.app.lecturas -> airemisti.db "Inserta por lotes y consulta" "SQL"
         airemisti.app.alertas -> airemisti.redis "Encola la tarea" "Redis protocol"
         airemisti.app.mapa -> airemisti.redis "Lee las últimas lecturas" "Redis protocol"
+
+        produccion = deploymentEnvironment "Producción" {
+            deploymentNode "Sensor de calidad del aire (x40)" "Mide PM10 y PM2.5 cada minuto." "Microcontrolador con WiFi/4G y microSD" 40 {
+                softwareSystemInstance sensores_red
+            }
+            deploymentNode "Dispositivo del usuario" "" "Celular o PC con navegador web" {
+                containerInstance airemisti.mapa_web
+            }
+            deploymentNode "VPS en la nube" "Único servidor del MVP (R-03)." "Ubuntu 24.04 LTS, 4 vCPU / 8 GB RAM" {
+                nginx = infrastructureNode "Nginx" "Proxy inverso y terminación TLS." "Nginx"
+                monitoreo = infrastructureNode "Prometheus + Grafana" "Métricas y tableros de monitoreo." "Prometheus / Grafana"
+                python = deploymentNode "Entorno Python" "" "Python 3.12 (virtualenv), servicios systemd" {
+                    gunicorn = deploymentNode "Gunicorn" "Sirve la API y ejecuta el proceso de ingesta." "Gunicorn WSGI" {
+                        app_inst = containerInstance airemisti.app
+                    }
+                    deploymentNode "Celery" "" "Celery worker + beat" {
+                        containerInstance airemisti.worker
+                    }
+                }
+                deploymentNode "Mosquitto" "" "Servicio systemd, puerto 8883" {
+                    containerInstance airemisti.broker
+                }
+                deploymentNode "PostgreSQL" "" "Servicio systemd, puerto 5432 local" {
+                    containerInstance airemisti.db
+                }
+                deploymentNode "Redis" "" "Servicio systemd, puerto 6379 local" {
+                    containerInstance airemisti.redis
+                }
+            }
+        }
     }
 
     views {
@@ -76,6 +106,23 @@ workspace "AireMisti IoT" "Modelo C4 de la red de monitoreo de calidad del aire 
         }
         component airemisti.app "Componentes" "Nivel 3: módulos del Monolito Django (coinciden con paquetes.puml del Lab 05)." {
             title "Nivel 3 — Componentes del Monolito Django"
+            include *
+            autolayout lr
+        }
+        dynamic airemisti "IngestaYAlerta" "Dinámico: ingesta de una lectura con PM10 = 180 µg/m³ y emisión de la alerta (HU-03)." {
+            title "Vista dinámica — Ingesta de una lectura y emisión de alerta"
+            sensores_red -> airemisti.broker "Publica la lectura con QoS 1"
+            airemisti.app -> airemisti.broker "Recibe el mensaje por su suscripción"
+            airemisti.app -> airemisti.db "Guarda el lote con ON CONFLICT DO NOTHING"
+            airemisti.app -> airemisti.redis "Actualiza la última lectura y encola evaluar()"
+            airemisti.worker -> airemisti.redis "Toma la tarea de la cola"
+            airemisti.worker -> airemisti.db "Registra la alerta del distrito"
+            airemisti.worker -> telegram "Publica la alerta"
+            telegram -> ciudadano "Notifica a los suscriptores del canal"
+            autolayout lr
+        }
+        deployment airemisti produccion "Despliegue" "Despliegue del MVP en producción: un VPS, los sensores en campo y el navegador del usuario." {
+            title "Vista de despliegue — Producción (MVP)"
             include *
             autolayout lr
         }

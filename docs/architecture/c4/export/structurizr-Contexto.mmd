@@ -1,0 +1,26 @@
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["Nivel 1 — Contexto del sistema AireMisti IoT"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    1["<div style='font-weight: bold'>Ciudadano</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Vecino de Arequipa que<br />consulta la calidad del aire<br />y recibe alertas.</div>"]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    15["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    16["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    17["<div style='font-weight: bold'>OpenStreetMap</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Servicio de teselas del mapa<br />base.</div>"]
+    style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    2["<div style='font-weight: bold'>Analista municipal</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Registra sensores, revisa<br />alertas y descarga el<br />histórico.</div>"]
+    style 2 fill:#08427b,stroke:#052e56,color:#ffffff
+    3["<div style='font-weight: bold'>AireMisti IoT</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de 40<br />sensores, publica el mapa de<br />calidad del aire y emite<br />alertas cuando PM10 supera<br />150 µg/m³.</div>"]
+    style 3 fill:#1168bd,stroke:#0b4884,color:#ffffff
+
+    1-. "<div>Consulta el mapa de calidad<br />del aire</div><div style='font-size: 70%'></div>" .->3
+    2-. "<div>Registra sensores, revisa<br />alertas y descarga el<br />histórico</div><div style='font-size: 70%'></div>" .->3
+    15-. "<div>Envía lecturas de PM10 y<br />PM2.5 cada minuto</div><div style='font-size: 70%'>[MQTT/TLS]</div>" .->3
+    3-. "<div>Publica alertas de<br />contaminación</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->16
+    3-. "<div>Obtiene las teselas del mapa</div><div style='font-size: 70%'>[HTTPS]</div>" .->17
+    16-. "<div>Notifica las alertas del<br />canal</div><div style='font-size: 70%'></div>" .->1
+  end

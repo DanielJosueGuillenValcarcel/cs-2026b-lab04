@@ -1,0 +1,51 @@
+@startuml
+set separator none
+title Nivel 2 — Contenedores de AireMisti IoT
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+!include <C4/C4_Container>
+
+AddElementTag("Software System,Externo", $bgColor="#999999", $borderColor="#6b6b6b", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Container,Queue", $bgColor="#438dd5", $borderColor="#2e6295", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Container,Database", $bgColor="#438dd5", $borderColor="#2e6295", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Person", $bgColor="#08427b", $borderColor="#052e56", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Container,Web Browser", $bgColor="#438dd5", $borderColor="#2e6295", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Container", $bgColor="#438dd5", $borderColor="#2e6295", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+
+AddRelTag("Relationship", $textColor="#707070", $lineColor="#707070", $lineStyle = "")
+
+AddBoundaryTag("Software System", $bgColor="#ffffff", $borderColor="#0b4884", $fontColor="#0b4884", $shadowing="", $borderStyle="solid")
+
+Person(Ciudadano, "Ciudadano", $descr="Vecino de Arequipa que consulta la calidad del aire y recibe alertas.", $tags="Person", $link="")
+Person(Analistamunicipal, "Analista municipal", $descr="Registra sensores, revisa alertas y descarga el histórico.", $tags="Person", $link="")
+System(ReddesensoresPM10PM25, "Red de sensores PM10 / PM2.5", $descr="40 sensores con WiFi/4G y microSD que miden cada minuto y guardan lecturas durante los cortes.", $tags="Software System,Externo", $link="")
+System(TelegramBotAPI, "Telegram Bot API", $descr="Canal público donde se publican las alertas.", $tags="Software System,Externo", $link="")
+System(OpenStreetMap, "OpenStreetMap", $descr="Servicio de teselas del mapa base.", $tags="Software System,Externo", $link="")
+
+System_Boundary("AireMistiIoT_boundary", "AireMisti IoT", $tags="Software System") {
+  Container(AireMistiIoT.WorkerCelery, "Worker Celery", $techn="Python 3.12 / Celery", $descr="Evalúa el umbral, crea y publica las alertas, y revisa los sensores sin señal (RF-07).", $tags="Container", $link="")
+  ContainerQueue(AireMistiIoT.BrokerMQTT, "Broker MQTT", $techn="Eclipse Mosquitto (QoS 1, persistente, TLS)", $descr="Recibe las lecturas de los sensores y las retiene si la ingesta no está disponible.", $tags="Container,Queue", $link="")
+  ContainerDb(AireMistiIoT.Basededatos, "Base de datos", $techn="PostgreSQL", $descr="Sensores, lecturas particionadas por mes y alertas; un esquema por módulo.", $tags="Container,Database", $link="")
+  ContainerDb(AireMistiIoT.Colaycaché, "Cola y caché", $techn="Redis", $descr="Últimas lecturas para el mapa y cola de tareas de Celery.", $tags="Container,Database", $link="")
+  Container(AireMistiIoT.Mapaweb, "Mapa web", $techn="JavaScript + Leaflet", $descr="Mapa en tiempo real para ciudadanos y panel de administración para el analista.", $tags="Container,Web Browser", $link="")
+  Container(AireMistiIoT.MonolitoDjango, "Monolito Django", $techn="Python 3.12 / Django + Gunicorn", $descr="Monolito modular: API REST, vistas web y proceso de ingesta suscrito al broker.", $tags="Container", $link="")
+}
+
+Rel(TelegramBotAPI, Ciudadano, "Notifica las alertas del canal", $techn="", $tags="Relationship", $link="")
+Rel(Ciudadano, AireMistiIoT.Mapaweb, "Consulta el mapa", $techn="HTTPS", $tags="Relationship", $link="")
+Rel(Analistamunicipal, AireMistiIoT.Mapaweb, "Administra sensores y descarga el histórico", $techn="HTTPS", $tags="Relationship", $link="")
+Rel(AireMistiIoT.Mapaweb, AireMistiIoT.MonolitoDjango, "Pide niveles, alertas y CSV", $techn="HTTPS/JSON (REST)", $tags="Relationship", $link="")
+Rel(AireMistiIoT.Mapaweb, OpenStreetMap, "Carga las teselas", $techn="HTTPS", $tags="Relationship", $link="")
+Rel(ReddesensoresPM10PM25, AireMistiIoT.BrokerMQTT, "Publica lecturas en su tema (QoS 1)", $techn="MQTT/TLS 8883", $tags="Relationship", $link="")
+Rel(AireMistiIoT.MonolitoDjango, AireMistiIoT.BrokerMQTT, "Se suscribe a las lecturas (sesión persistente)", $techn="MQTT", $tags="Relationship", $link="")
+Rel(AireMistiIoT.MonolitoDjango, AireMistiIoT.Basededatos, "Lee y escribe", $techn="SQL/TCP", $tags="Relationship", $link="")
+Rel(AireMistiIoT.MonolitoDjango, AireMistiIoT.Colaycaché, "Guarda la última lectura y encola la evaluación de alertas", $techn="Redis protocol", $tags="Relationship", $link="")
+Rel(AireMistiIoT.WorkerCelery, AireMistiIoT.Colaycaché, "Consume tareas", $techn="Redis protocol", $tags="Relationship", $link="")
+Rel(AireMistiIoT.WorkerCelery, AireMistiIoT.Basededatos, "Lee lecturas y registra alertas", $techn="SQL/TCP", $tags="Relationship", $link="")
+Rel(AireMistiIoT.WorkerCelery, TelegramBotAPI, "Publica alertas", $techn="HTTPS/JSON", $tags="Relationship", $link="")
+
+SHOW_LEGEND(true)
+@enduml

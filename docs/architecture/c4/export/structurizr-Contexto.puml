@@ -1,0 +1,31 @@
+@startuml
+set separator none
+title Nivel 1 — Contexto del sistema AireMisti IoT
+
+left to right direction
+
+!include <C4/C4>
+!include <C4/C4_Context>
+
+AddElementTag("Software System,Externo", $bgColor="#999999", $borderColor="#6b6b6b", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Software System", $bgColor="#1168bd", $borderColor="#0b4884", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+AddElementTag("Person", $bgColor="#08427b", $borderColor="#052e56", $fontColor="#ffffff", $sprite="", $shadowing="", $borderStyle="solid")
+
+AddRelTag("Relationship", $textColor="#707070", $lineColor="#707070", $lineStyle = "")
+
+Person(Ciudadano, "Ciudadano", $descr="Vecino de Arequipa que consulta la calidad del aire y recibe alertas.", $tags="Person", $link="")
+System(ReddesensoresPM10PM25, "Red de sensores PM10 / PM2.5", $descr="40 sensores con WiFi/4G y microSD que miden cada minuto y guardan lecturas durante los cortes.", $tags="Software System,Externo", $link="")
+System(TelegramBotAPI, "Telegram Bot API", $descr="Canal público donde se publican las alertas.", $tags="Software System,Externo", $link="")
+System(OpenStreetMap, "OpenStreetMap", $descr="Servicio de teselas del mapa base.", $tags="Software System,Externo", $link="")
+Person(Analistamunicipal, "Analista municipal", $descr="Registra sensores, revisa alertas y descarga el histórico.", $tags="Person", $link="")
+System(AireMistiIoT, "AireMisti IoT", $descr="Recibe las lecturas de 40 sensores, publica el mapa de calidad del aire y emite alertas cuando PM10 supera 150 µg/m³.", $tags="Software System", $link="")
+
+Rel(Ciudadano, AireMistiIoT, "Consulta el mapa de calidad del aire", $techn="", $tags="Relationship", $link="")
+Rel(Analistamunicipal, AireMistiIoT, "Registra sensores, revisa alertas y descarga el histórico", $techn="", $tags="Relationship", $link="")
+Rel(ReddesensoresPM10PM25, AireMistiIoT, "Envía lecturas de PM10 y PM2.5 cada minuto", $techn="MQTT/TLS", $tags="Relationship", $link="")
+Rel(AireMistiIoT, TelegramBotAPI, "Publica alertas de contaminación", $techn="HTTPS/JSON", $tags="Relationship", $link="")
+Rel(AireMistiIoT, OpenStreetMap, "Obtiene las teselas del mapa", $techn="HTTPS", $tags="Relationship", $link="")
+Rel(TelegramBotAPI, Ciudadano, "Notifica las alertas del canal", $techn="", $tags="Relationship", $link="")
+
+SHOW_LEGEND(true)
+@enduml
