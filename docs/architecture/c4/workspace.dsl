@@ -85,6 +85,8 @@ workspace "AireMisti IoT" "Modelo C4 de la red de monitoreo de calidad del aire 
                 deploymentNode "Redis" "" "Servicio systemd, puerto 6379 local" {
                     containerInstance airemisti.redis
                 }
+                nginx -> python.gunicorn.app_inst "Reenvía las peticiones HTTPS" "HTTP (proxy inverso)"
+                monitoreo -> python.gunicorn.app_inst "Recoge métricas" "HTTP /metrics"
             }
         }
     }
@@ -112,7 +114,7 @@ workspace "AireMisti IoT" "Modelo C4 de la red de monitoreo de calidad del aire 
         dynamic airemisti "IngestaYAlerta" "Dinámico: ingesta de una lectura con PM10 = 180 µg/m³ y emisión de la alerta (HU-03)." {
             title "Vista dinámica — Ingesta de una lectura y emisión de alerta"
             sensores_red -> airemisti.broker "Publica la lectura con QoS 1"
-            airemisti.app -> airemisti.broker "Recibe el mensaje por su suscripción"
+            airemisti.app -> airemisti.broker "Consume la lectura de su suscripción"
             airemisti.app -> airemisti.db "Guarda el lote con ON CONFLICT DO NOTHING"
             airemisti.app -> airemisti.redis "Actualiza la última lectura y encola evaluar()"
             airemisti.worker -> airemisti.redis "Toma la tarea de la cola"

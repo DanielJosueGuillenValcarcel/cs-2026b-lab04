@@ -105,6 +105,59 @@ stateDiagram-v2
 
 Pruebas: `PYTHONPATH=src pytest tests` (criterios de HU-03 y una prueba por transición del Sensor).
 
+## Arquitectura C4 (Lab 06)
+Modelo único en Structurizr DSL ([workspace.dsl](docs/architecture/c4/workspace.dsl)); las cinco vistas se exportan desde él a C4-PlantUML y Mermaid.
+
+### Nivel 1 — Contexto del sistema
+```mermaid
+graph LR
+  linkStyle default fill:#ffffff
+
+  subgraph diagram ["Nivel 1 — Contexto del sistema AireMisti IoT"]
+    style diagram fill:#ffffff,stroke:#ffffff
+
+    1["<div style='font-weight: bold'>Ciudadano</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Vecino de Arequipa que<br />consulta la calidad del aire<br />y recibe alertas.</div>"]
+    style 1 fill:#08427b,stroke:#052e56,color:#ffffff
+    15["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
+    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    16["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    17["<div style='font-weight: bold'>OpenStreetMap</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Servicio de teselas del mapa<br />base.</div>"]
+    style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    2["<div style='font-weight: bold'>Analista municipal</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Registra sensores, revisa<br />alertas y descarga el<br />histórico.</div>"]
+    style 2 fill:#08427b,stroke:#052e56,color:#ffffff
+    3["<div style='font-weight: bold'>AireMisti IoT</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de 40<br />sensores, publica el mapa de<br />calidad del aire y emite<br />alertas cuando PM10 supera<br />150 µg/m³.</div>"]
+    style 3 fill:#1168bd,stroke:#0b4884,color:#ffffff
+
+    1-. "<div>Consulta el mapa de calidad<br />del aire</div><div style='font-size: 70%'></div>" .->3
+    2-. "<div>Registra sensores, revisa<br />alertas y descarga el<br />histórico</div><div style='font-size: 70%'></div>" .->3
+    15-. "<div>Envía lecturas de PM10 y<br />PM2.5 cada minuto</div><div style='font-size: 70%'>[MQTT/TLS]</div>" .->3
+    3-. "<div>Publica alertas de<br />contaminación</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->16
+    3-. "<div>Obtiene las teselas del mapa</div><div style='font-size: 70%'>[HTTPS]</div>" .->17
+    16-. "<div>Notifica las alertas del<br />canal</div><div style='font-size: 70%'></div>" .->1
+  end
+```
+
+### Vistas
+| Vista | Imagen | Exportado |
+|---|---|---|
+| Nivel 1 — Contexto | [PNG](docs/architecture/c4/img/structurizr-Contexto.png) | [.puml](docs/architecture/c4/export/structurizr-Contexto.puml) · [.mmd](docs/architecture/c4/export/structurizr-Contexto.mmd) |
+| Nivel 2 — Contenedores | [PNG](docs/architecture/c4/img/structurizr-Contenedores.png) | [.puml](docs/architecture/c4/export/structurizr-Contenedores.puml) · [.mmd](docs/architecture/c4/export/structurizr-Contenedores.mmd) |
+| Nivel 3 — Componentes del Monolito Django | [PNG](docs/architecture/c4/img/structurizr-Componentes.png) | [.puml](docs/architecture/c4/export/structurizr-Componentes.puml) · [.mmd](docs/architecture/c4/export/structurizr-Componentes.mmd) |
+| Dinámica — Ingesta y alerta | [PNG](docs/architecture/c4/img/structurizr-IngestaYAlerta.png) | [.puml](docs/architecture/c4/export/structurizr-IngestaYAlerta.puml) · [.mmd](docs/architecture/c4/export/structurizr-IngestaYAlerta.mmd) |
+| Despliegue — Producción | [PNG](docs/architecture/c4/img/structurizr-Despliegue.png) | [.puml](docs/architecture/c4/export/structurizr-Despliegue.puml) · [.mmd](docs/architecture/c4/export/structurizr-Despliegue.mmd) |
+
+El nivel 4 (código) no se vuelve a dibujar: es el [diagrama de clases del Lab 05](docs/design/clases.puml).
+
+### Documentos
+- [Inventario de elementos](docs/architecture/c4/inventario.md)
+- [Comparaciones: vista dinámica vs. secuencia UML y modelo vs. diagrama a mano](docs/architecture/c4/comparacion.md)
+- [Revisión con la lista oficial de C4 y con IA](docs/architecture/c4/revision-c4.md)
+- [Explicación para público no técnico](docs/architecture/c4/explicacion.md)
+- [Bitácora de IA del Lab 06](docs/architecture/c4/bitacora-ia.md)
+
+La GitHub Action valida `workspace.dsl` con Structurizr CLI en cada push que lo modifica (falla si el modelo tiene errores) y regenera las imágenes.
+
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.
 Sin embargo, mostró un sesgo hacia tecnologías de moda: recomendó Kafka para 40 sensores, cuando un cálculo simple muestra apenas 0,67 lecturas por segundo.
