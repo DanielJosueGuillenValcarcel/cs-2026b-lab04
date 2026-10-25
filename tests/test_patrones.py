@@ -5,10 +5,12 @@ import pytest
 
 from monitoreo.estados import TransicionInvalida
 from monitoreo.eventos import ConReintentos, PublicadorEventos, SuscriptorBase
-from monitoreo.externos import TelegramBotSimulado, payload_airesense
+from monitoreo.externos import ClienteOpenAISimulado, TelegramBotSimulado, payload_airesense
+from monitoreo.ia import (ConCache, ExplicadorAlertas, FabricaProveedores, Guardrail, GuardrailRechazo,
+                          LongitudMaxima, OpenAIAdapter, cadena_por_defecto)
 from monitoreo.indices import ECA, FabricaNormas, NormaCalidad, OMS
 from monitoreo.sensores import FabricaLectores, FiltroAnomalias, Lectura, LecturaDescartada
-from monitoreo.servicio import Sensor, ServicioMonitoreo
+from monitoreo.servicio import Alerta, Sensor, ServicioMonitoreo
 
 T0 = "2026-10-20T10:00:00+00:00"
 
@@ -147,3 +149,57 @@ def test_telegram_recibe_el_texto_de_la_alerta_por_el_adapter():
     s.registrar_sensor(Sensor("AQP-07", "Cayma", "AIRESENSE"))
     s.procesar("AQP-07", payload_airesense(180, 60, T0))
     assert bot.enviados[0][0] == "@airemisti_alertas"
+
+
+# --- Decorator: caché del LLM -------------------------------------------------------
+def test_cache_evita_pagar_dos_veces_el_mismo_prompt():
+    cliente = ClienteOpenAISimulado("ok")
+    p = ConCache(OpenAIAdapter(cliente))
+    p.completar("x"), p.completar("x"), p.completar("y")
+    assert cliente.llamadas == 2
+
+
+# --- Chain of Responsibility: guardrails -----------------------------------------
+ALERTA = Alerta("Cayma", 180.0, None)
+
+
+def test_cadena_deja_pasar_una_respuesta_segura():
+    assert cadena_por_defecto().revisar("PM10 de 180.0 µg/m³ en Cayma.", ALERTA)
+
+
+def test_guardrail_nuevo_se_encadena_sin_tocar_los_demas():
+    class SinMayusculas(Guardrail):
+        def validar(self, texto, alerta):
+            if texto.isupper():
+                raise GuardrailRechazo("Guardrail: no gritar")
+
+    cadena = cadena_por_defecto()
+    cadena.siguiente.siguiente.luego(SinMayusculas())
+    with pytest.raises(GuardrailRechazo, match="gritar"):
+        cadena.revisar("PELIGRO EN CAYMA", ALERTA)
+
+
+def test_el_orden_de_la_cadena_decide_el_primer_rechazo():
+    cadena = LongitudMaxima(10)
+    cadena.luego(cadena_por_defecto())
+    with pytest.raises(GuardrailRechazo, match="larga"):
+        cadena.revisar("tome un medicamento ya mismo", ALERTA)
+
+
+def test_el_servicio_cachea_la_explicacion_de_la_misma_alerta():
+    cliente = ClienteOpenAISimulado("Aire malo en Cayma: 180.0 µg/m³.")
+    s = ServicioMonitoreo()
+    s.registrar_sensor(Sensor("AQP-07", "Cayma", "AIRESENSE"))
+    s.procesar("AQP-07", payload_airesense(180, 60, T0))
+    explicador = ExplicadorAlertas(FabricaProveedores().crear("OPENAI", cliente))
+    explicador.explicar(s.alertas["Cayma"]), explicador.explicar(s.alertas["Cayma"])
+    assert cliente.llamadas == 1
+
+
+def test_explicador_acepta_cualquier_proveedor_que_cumpla_el_protocolo():
+    class Local:
+        def completar(self, prompt):
+            assert "180.0 µg/m³" in prompt
+            return "Aire malo en Cayma, evite salir."
+
+    assert ExplicadorAlertas(Local()).explicar(ALERTA).startswith("Aire malo")
