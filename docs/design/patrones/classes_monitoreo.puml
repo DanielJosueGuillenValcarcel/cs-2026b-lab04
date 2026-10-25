@@ -1,0 +1,234 @@
+@startuml classes_monitoreo
+set namespaceSeparator none
+class "Activo" as monitoreo.estados.Activo {
+  nombre : str
+  enviar_a_mantenimiento(sensor)
+  marcar_sin_senal(sensor)
+  {abstract}registrar_lectura(sensor)
+}
+class "AireSenseAdapter" as monitoreo.sensores.AireSenseAdapter {
+  leer(codigo, payload)
+}
+class "Alerta" as monitoreo.servicio.Alerta {
+  distrito : str
+  lecturas : int
+  pm10_max : float
+  vigente_hasta : object
+  extender(lectura)
+  vigente(momento) -> bool
+}
+class "AvisoAnalista" as monitoreo.eventos.AvisoAnalista {
+  bitacora : list
+  alerta_abierta(alerta)
+}
+class "Baja" as monitoreo.estados.Baja {
+  nombre : str
+}
+class "CanalAlertas" as monitoreo.eventos.CanalAlertas {
+  enviar(texto: str) -> None
+}
+class "ClienteGeminiSimulado" as monitoreo.externos.ClienteGeminiSimulado {
+  llamadas : int
+  respuesta : str
+  generate_content(prompt: str) -> _RespuestaGemini
+}
+class "ClienteOpenAISimulado" as monitoreo.externos.ClienteOpenAISimulado {
+  llamadas : int
+  respuesta : str
+  chat_completions_create(model: str, messages: list[dict]) -> dict
+}
+class "ConCache" as monitoreo.ia.ConCache {
+  proveedor
+  completar(prompt)
+}
+class "ConReintentos" as monitoreo.eventos.ConReintentos {
+  canal
+  intentos : int
+  enviar(texto)
+}
+class "EstadoSensor" as monitoreo.estados.EstadoSensor {
+  nombre : str
+  completar_sincronizacion(sensor)
+  dar_de_baja(sensor)
+  enviar_a_mantenimiento(sensor)
+  iniciar_sincronizacion(sensor)
+  marcar_sin_senal(sensor)
+  reactivar(sensor)
+  registrar_lectura(sensor)
+}
+class "ExplicadorAlertas" as monitoreo.ia.ExplicadorAlertas {
+  guardrails
+  proveedor
+  explicar(alerta) -> str
+}
+class "FabricaLectores" as monitoreo.sensores.FabricaLectores {
+  crear(marca: str) -> LectorSensor
+  registrar(marca: str, adaptador: type)
+}
+class "FabricaNormas" as monitoreo.indices.FabricaNormas {
+  crear(nombre: str) -> NormaCalidad
+  registrar(norma: NormaCalidad)
+}
+class "FabricaProveedores" as monitoreo.ia.FabricaProveedores {
+  crear(nombre: str, cliente) -> ProveedorLLM
+  registrar(nombre: str, adaptador: type)
+}
+class "FiltroAnomalias" as monitoreo.sensores.FiltroAnomalias {
+  lector
+  pm10_max : float
+  leer(codigo, payload)
+}
+class "GeminiAdapter" as monitoreo.ia.GeminiAdapter {
+  cliente
+  completar(prompt)
+}
+class "Guardrail" as monitoreo.ia.Guardrail {
+  siguiente : Guardrail | None, str
+  luego(otro: 'Guardrail') -> 'Guardrail'
+  revisar(texto: str, alerta) -> str
+  {abstract}validar(texto, alerta)
+}
+class "<color:red>GuardrailRechazo</color>" as monitoreo.ia.GuardrailRechazo {
+}
+class "LectorSensor" as monitoreo.sensores.LectorSensor {
+  leer(codigo: str, payload) -> Lectura
+}
+class "Lectura" as monitoreo.sensores.Lectura {
+  codigo : str
+  medido_en : datetime
+  pm10 : float
+  pm25 : float
+}
+class "<color:red>LecturaDescartada</color>" as monitoreo.sensores.LecturaDescartada {
+}
+class "LongitudMaxima" as monitoreo.ia.LongitudMaxima {
+  maximo : int
+  validar(texto, alerta)
+}
+class "Mantenimiento" as monitoreo.estados.Mantenimiento {
+  nombre : str
+  dar_de_baja(sensor)
+  reactivar(sensor)
+}
+class "MapaPublico" as monitoreo.eventos.MapaPublico {
+  bitacora : list
+  lectura_guardada(lectura, nivel)
+}
+class "NoInventaPM10" as monitoreo.ia.NoInventaPM10 {
+  validar(texto, alerta)
+}
+class "NormaCalidad" as monitoreo.indices.NormaCalidad {
+  nombre : str
+  pm10_limite : float
+  pm25_limite : float
+  clasificar(lectura) -> str
+}
+class "NotificadorTelegram" as monitoreo.eventos.NotificadorTelegram {
+  bitacora : list
+  canal
+  alerta_abierta(alerta)
+}
+class "OpenAIAdapter" as monitoreo.ia.OpenAIAdapter {
+  cliente
+  modelo : str
+  completar(prompt)
+}
+class "ProveedorLLM" as monitoreo.ia.ProveedorLLM {
+  completar(prompt: str) -> str
+}
+class "PublicadorEventos" as monitoreo.eventos.PublicadorEventos {
+  alerta_abierta(alerta)
+  lectura_guardada(lectura, nivel)
+  suscribir(s: Suscriptor)
+}
+class "PurairAdapter" as monitoreo.sensores.PurairAdapter {
+  leer(codigo, payload)
+}
+class "Sensor" as monitoreo.estados.Sensor {
+  codigo
+  distrito
+  estado : str
+  marca
+  cambiar_a(estado: EstadoSensor)
+  completar_sincronizacion()
+  dar_de_baja()
+  enviar_a_mantenimiento()
+  iniciar_sincronizacion()
+  marcar_sin_senal()
+  reactivar()
+  registrar_lectura()
+}
+class "ServicioMonitoreo" as monitoreo.servicio.ServicioMonitoreo {
+  alertas : dict
+  eventos : list
+  lectores
+  lecturas : dict
+  norma
+  proveedores
+  publicador
+  sensores : dict
+  explicar_alerta(distrito, proveedor, cliente)
+  procesar(codigo, payload)
+  registrar_sensor(sensor)
+}
+class "SinConsejosMedicos" as monitoreo.ia.SinConsejosMedicos {
+  PALABRAS : tuple
+  validar(texto, alerta)
+}
+class "SinSenal" as monitoreo.estados.SinSenal {
+  nombre : str
+  dar_de_baja(sensor)
+  enviar_a_mantenimiento(sensor)
+  iniciar_sincronizacion(sensor)
+  registrar_lectura(sensor)
+}
+class "Sincronizando" as monitoreo.estados.Sincronizando {
+  nombre : str
+  completar_sincronizacion(sensor)
+  marcar_sin_senal(sensor)
+}
+class "Suscriptor" as monitoreo.eventos.Suscriptor {
+  alerta_abierta(alerta) -> None
+  lectura_guardada(lectura, nivel: str) -> None
+}
+class "SuscriptorBase" as monitoreo.eventos.SuscriptorBase {
+  {abstract}alerta_abierta(alerta)
+  {abstract}lectura_guardada(lectura, nivel)
+}
+class "TelegramAdapter" as monitoreo.eventos.TelegramAdapter {
+  bot
+  chat_id : str
+  enviar(texto)
+}
+class "TelegramBotSimulado" as monitoreo.externos.TelegramBotSimulado {
+  enviados : list[tuple[str, str]]
+  fallas : int
+  llamadas : int
+  send_message(chat_id: str, text: str) -> dict
+}
+class "<color:red>TransicionInvalida</color>" as monitoreo.estados.TransicionInvalida {
+}
+class "_RespuestaGemini" as monitoreo.externos._RespuestaGemini {
+  text : str
+}
+monitoreo.estados.Activo --|> monitoreo.estados.EstadoSensor
+monitoreo.estados.Baja --|> monitoreo.estados.EstadoSensor
+monitoreo.estados.Mantenimiento --|> monitoreo.estados.EstadoSensor
+monitoreo.estados.SinSenal --|> monitoreo.estados.EstadoSensor
+monitoreo.estados.Sincronizando --|> monitoreo.estados.EstadoSensor
+monitoreo.eventos.AvisoAnalista --|> monitoreo.eventos.SuscriptorBase
+monitoreo.eventos.MapaPublico --|> monitoreo.eventos.SuscriptorBase
+monitoreo.eventos.NotificadorTelegram --|> monitoreo.eventos.SuscriptorBase
+monitoreo.ia.LongitudMaxima --|> monitoreo.ia.Guardrail
+monitoreo.ia.NoInventaPM10 --|> monitoreo.ia.Guardrail
+monitoreo.ia.SinConsejosMedicos --|> monitoreo.ia.Guardrail
+monitoreo.servicio.ServicioMonitoreo --> monitoreo.eventos.PublicadorEventos : publicador
+monitoreo.servicio.ServicioMonitoreo --> monitoreo.ia.FabricaProveedores : proveedores
+monitoreo.ia.ExplicadorAlertas --> monitoreo.ia.NoInventaPM10 : guardrails
+monitoreo.servicio.ServicioMonitoreo --> monitoreo.sensores.FabricaLectores : lectores
+monitoreo.eventos.CanalAlertas --o monitoreo.eventos.ConReintentos : canal
+monitoreo.eventos.CanalAlertas --o monitoreo.eventos.NotificadorTelegram : canal
+monitoreo.ia.ProveedorLLM --o monitoreo.ia.ConCache : proveedor
+monitoreo.ia.ProveedorLLM --o monitoreo.ia.ExplicadorAlertas : proveedor
+monitoreo.sensores.LectorSensor --o monitoreo.sensores.FiltroAnomalias : lector
+@enduml

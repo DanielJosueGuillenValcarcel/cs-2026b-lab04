@@ -1,0 +1,63 @@
+@startuml state
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam stereotypeCBackgroundColor #C0392B
+skinparam noteBackgroundColor #FFF8E1
+hide empty members
+title State — ciclo de vida del Sensor (máquina de estados del Lab 05)
+
+class Sensor <<Context>> {
+  + codigo: str
+  + distrito: str
+  + marca: str
+  - _estado: EstadoSensor
+  + estado: str
+  + cambiar_a(estado)
+  + registrar_lectura()
+  + marcar_sin_senal()
+  + iniciar_sincronizacion()
+  + completar_sincronizacion()
+  + enviar_a_mantenimiento()
+  + reactivar()
+  + dar_de_baja()
+}
+abstract class EstadoSensor <<State>> {
+  + registrar_lectura(s)
+  + marcar_sin_senal(s)
+  + iniciar_sincronizacion(s)
+  + completar_sincronizacion(s)
+  + enviar_a_mantenimiento(s)
+  + reactivar(s)
+  + dar_de_baja(s)
+}
+note right of EstadoSensor : Todas las transiciones\nlanzan TransicionInvalida
+class Activo <<ConcreteState>> {
+  + registrar_lectura(s)
+  + marcar_sin_senal(s)
+  + enviar_a_mantenimiento(s)
+}
+class SinSenal <<ConcreteState>> {
+  + registrar_lectura(s)
+  + iniciar_sincronizacion(s)
+  + enviar_a_mantenimiento(s)
+  + dar_de_baja(s)
+}
+class Sincronizando <<ConcreteState>> {
+  + completar_sincronizacion(s)
+  + marcar_sin_senal(s)
+}
+class Mantenimiento <<ConcreteState>> {
+  + reactivar(s)
+  + dar_de_baja(s)
+}
+class Baja <<ConcreteState>>
+Sensor o--> EstadoSensor
+EstadoSensor <|-- Activo
+EstadoSensor <|-- SinSenal
+EstadoSensor <|-- Sincronizando
+EstadoSensor <|-- Mantenimiento
+EstadoSensor <|-- Baja
+@enduml

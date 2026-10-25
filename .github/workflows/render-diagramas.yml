@@ -61,10 +61,14 @@ jobs:
           shopt -s nullglob
           for f in *.mmd; do mmdc -p /tmp/puppeteer.json -i "$f" -o "img/${f%.mmd}.png" -s 3 -b white; done
           plantuml -tpng -o img *.puml
+      - name: Renderizar diagramas de patrones (Lab 07)
+        working-directory: docs/design/patrones
+        run: |
+          curl -sSL -o /tmp/plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2025.4/plantuml-1.2025.4.jar
+          java -jar /tmp/plantuml.jar -tpng -o img *.puml
       - name: Exportar y renderizar vistas C4 (Lab 06)
         working-directory: docs/architecture/c4
         run: |
-          curl -sSL -o /tmp/plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2025.4/plantuml-1.2025.4.jar
           rm -f export/*.puml export/*.mmd
           /tmp/structurizr/structurizr.sh export -w workspace.dsl -f plantuml/c4plantuml -o export
           /tmp/structurizr/structurizr.sh export -w workspace.dsl -f mermaid -o export
@@ -74,7 +78,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/diagramas/img docs/design/img docs/architecture/c4/export docs/architecture/c4/img
+          git add docs/architecture/diagramas/img docs/design/img docs/design/patrones/img docs/architecture/c4/export docs/architecture/c4/img
           git diff --cached --quiet && exit 0
           git commit -m "CI: regenerar imágenes de diagramas"
           git pull --rebase origin "${GITHUB_REF_NAME}"

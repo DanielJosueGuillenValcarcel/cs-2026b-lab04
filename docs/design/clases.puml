@@ -6,7 +6,7 @@ skinparam classBackgroundColor #EEF2F8
 skinparam classBorderColor #1A3A5C
 skinparam nodesep 30
 skinparam ranksep 45
-title AireMisti IoT — Módulos Ingesta, Sensores, Lecturas y Alertas (diseño)
+title AireMisti IoT — Módulos Ingesta, Sensores, Lecturas, Alertas e IA (diseño, actualizado con los patrones del Lab 07)
 
 package "sensores" {
   class Sensor {
@@ -29,13 +29,20 @@ package "sensores" {
     - longitud: Decimal
     - distrito: String
   }
-  enum EstadoSensor {
-    ACTIVO
-    SIN_SENAL
-    SINCRONIZANDO
-    MANTENIMIENTO
-    BAJA
+  abstract class EstadoSensor <<State>> {
+    + registrarLectura(s: Sensor): void
+    + marcarSinSenal(s: Sensor): void
+    + iniciarSincronizacion(s: Sensor): void
+    + completarSincronizacion(s: Sensor): void
+    + enviarAMantenimiento(s: Sensor): void
+    + reactivar(s: Sensor): void
+    + darDeBaja(s: Sensor): void
   }
+  class Activo <<ConcreteState>>
+  class SinSenal <<ConcreteState>>
+  class Sincronizando <<ConcreteState>>
+  class Mantenimiento <<ConcreteState>>
+  class Baja <<ConcreteState>>
   interface RepositorioSensores <<puerto>> {
     + buscarPorCodigo(codigo: String): Sensor
     + guardar(s: Sensor): void
@@ -51,6 +58,12 @@ package "lecturas" {
     - recibidoEn: DateTime
     + esValida(): bool
     + superaUmbral(umbral: Decimal): bool
+  }
+  class NormaCalidad <<Strategy>> {
+    - nombre: String
+    - pm10Limite: Decimal
+    - pm25Limite: Decimal
+    + clasificar(l: Lectura): String
   }
   interface RepositorioLecturas <<puerto>> {
     + guardarLote(lecturas: List<Lectura>): int
@@ -84,9 +97,21 @@ package "alertas" {
     + guardar(a: Alerta): void
   }
   interface CanalAlertas <<puerto>> {
-    + publicar(a: Alerta): void
+    + enviar(texto: String): void
   }
-  class TelegramAdapter <<adaptador>>
+  class TelegramAdapter <<Adapter>>
+  class ConReintentos <<Decorator>> {
+    - intentos: int = 3
+  }
+  class PublicadorEventos <<Subject>> {
+    + suscribir(s: Suscriptor): void
+    + lecturaGuardada(l: Lectura, nivel: String): void
+    + alertaAbierta(a: Alerta): void
+  }
+  interface Suscriptor <<Observer>>
+  class MapaPublico <<ConcreteObserver>>
+  class NotificadorTelegram <<ConcreteObserver>>
+  class AvisoAnalista <<ConcreteObserver>>
 }
 
 package "ingesta" {
@@ -97,21 +122,80 @@ package "ingesta" {
     - tema: String = "airemisti/+/lecturas"
     + alRecibirMensaje(tema: String, payload: bytes): void
   }
+  interface LectorSensor <<Target>> {
+    + leer(codigo: String, payload): Lectura
+  }
+  class AireSenseAdapter <<Adapter>>
+  class PurairAdapter <<Adapter>>
+  class FiltroAnomalias <<Decorator>>
+  class FabricaLectores <<Factory>> {
+    + registrar(marca: String, adaptador): void
+    + crear(marca: String): LectorSensor
+  }
+}
+
+package "ia" {
+  interface ProveedorLLM <<Target>> {
+    + completar(prompt: String): String
+  }
+  class OpenAIAdapter <<Adapter>>
+  class GeminiAdapter <<Adapter>>
+  class ConCache <<Decorator>>
+  abstract class Guardrail <<Handler>> {
+    + revisar(texto: String, a: Alerta): String
+  }
+  class NoInventaPM10 <<ConcreteHandler>>
+  class SinConsejosMedicos <<ConcreteHandler>>
+  class LongitudMaxima <<ConcreteHandler>>
+  class ExplicadorAlertas {
+    + explicar(a: Alerta): String
+  }
 }
 
 Sensor "1" *-- "1" Ubicacion : se ubica en >
-Sensor "0..*" --> "1" EstadoSensor
+Sensor "1" o-- "1" EstadoSensor : delega en >
+EstadoSensor <|-- Activo
+EstadoSensor <|-- SinSenal
+EstadoSensor <|-- Sincronizando
+EstadoSensor <|-- Mantenimiento
+EstadoSensor <|-- Baja
 Sensor "1" -- "0..*" Lectura : registra >
 Alerta "0..1" o-- "1..*" Lectura : sustentada por >
 Alerta "0..*" --> "1" EstadoAlerta
 CanalAlertas <|.. TelegramAdapter
+CanalAlertas <|.. ConReintentos
+ConReintentos o--> CanalAlertas
+PublicadorEventos o--> "*" Suscriptor
+Suscriptor <|.. MapaPublico
+Suscriptor <|.. NotificadorTelegram
+Suscriptor <|.. AvisoAnalista
+NotificadorTelegram --> CanalAlertas
+LectorSensor <|.. AireSenseAdapter
+LectorSensor <|.. PurairAdapter
+LectorSensor <|.. FiltroAnomalias
+FiltroAnomalias o--> LectorSensor
+FabricaLectores ..> LectorSensor : crea
+ServicioIngesta ..> FabricaLectores
+ServicioIngesta ..> NormaCalidad
+ServicioIngesta ..> PublicadorEventos
+ProveedorLLM <|.. OpenAIAdapter
+ProveedorLLM <|.. GeminiAdapter
+ProveedorLLM <|.. ConCache
+ConCache o--> ProveedorLLM
+Guardrail <|-- NoInventaPM10
+Guardrail <|-- SinConsejosMedicos
+Guardrail <|-- LongitudMaxima
+Guardrail o--> Guardrail : siguiente
+ExplicadorAlertas --> ProveedorLLM
+ExplicadorAlertas --> Guardrail
+ExplicadorAlertas ..> Alerta
 ConsumidorMqtt "1" --> "1" ServicioIngesta : delega >
 ServicioIngesta ..> RepositorioSensores
 ServicioIngesta ..> RepositorioLecturas
 ServicioIngesta ..> Lectura : crea
 ServicioIngesta ..> ServicioAlertas : encola (Celery)
 ServicioAlertas ..> RepositorioAlertas
-ServicioAlertas ..> CanalAlertas
+ServicioAlertas ..> PublicadorEventos
 ServicioAlertas ..> Alerta : crea
 
 note bottom of ServicioIngesta
