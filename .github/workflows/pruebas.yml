@@ -1,0 +1,33 @@
+name: Pruebas y complejidad
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/pruebas.yml"
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar pytest y radon
+        run: pip install pytest radon
+      - name: Pruebas (antes y después del refactor)
+        run: PYTHONPATH=src pytest -v tests
+      - name: Complejidad máxima 10 en el código con patrones
+        run: |
+          radon cc -s -a src/monitoreo -e "*/antes/*"
+          complejos=$(radon cc -s --min C src/monitoreo -e "*/antes/*")
+          if [ -n "$complejos" ]; then
+            echo "::error::Hay métodos con complejidad mayor a 10:"
+            echo "$complejos"
+            exit 1
+          fi

@@ -1,0 +1,58 @@
+@startuml ia
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam stereotypeCBackgroundColor #C0392B
+skinparam noteBackgroundColor #FFF8E1
+hide empty members
+title Componente de IA aislado: Adapter + Factory + Decorator + Chain of Responsibility
+
+class ServicioMonitoreo <<Client>> {
+  + explicar_alerta(distrito, proveedor, cliente): str
+}
+class ExplicadorAlertas {
+  + explicar(alerta): str
+}
+class FabricaProveedores <<Factory>> {
+  + registrar(nombre, adaptador)
+  + crear(nombre, cliente): ProveedorLLM
+}
+interface ProveedorLLM <<Target>> {
+  + completar(prompt): str
+}
+class OpenAIAdapter <<Adapter>>
+class GeminiAdapter <<Adapter>>
+class ConCache <<Decorator>> {
+  - _cache: dict[str, str]
+}
+abstract class Guardrail <<Handler>> {
+  - siguiente: Guardrail
+  + luego(otro): Guardrail
+  + revisar(texto, alerta): str
+  # validar(texto, alerta)
+}
+class NoInventaPM10 <<ConcreteHandler>>
+class SinConsejosMedicos <<ConcreteHandler>>
+class LongitudMaxima <<ConcreteHandler>> {
+  - maximo = 400
+}
+ServicioMonitoreo ..> FabricaProveedores
+ServicioMonitoreo ..> ExplicadorAlertas
+FabricaProveedores ..> ConCache : envuelve al adaptador
+ExplicadorAlertas --> ProveedorLLM
+ExplicadorAlertas --> Guardrail : primer eslabón
+ProveedorLLM <|.. OpenAIAdapter
+ProveedorLLM <|.. GeminiAdapter
+ProveedorLLM <|.. ConCache
+ConCache o--> ProveedorLLM
+Guardrail <|-- NoInventaPM10
+Guardrail <|-- SinConsejosMedicos
+Guardrail <|-- LongitudMaxima
+Guardrail o--> Guardrail : siguiente
+note bottom of NoInventaPM10
+  NoInventaPM10 -> SinConsejosMedicos -> LongitudMaxima
+  La respuesta del LLM es un dato no confiable.
+end note
+@enduml

@@ -63,6 +63,7 @@ flowchart TB
 - [ADR-001: Estilo arquitectónico — monolito modular con broker MQTT](docs/architecture/adr/001-estilo-arquitectonico.md)
 - [ADR-002: Almacenamiento de lecturas en PostgreSQL particionado](docs/architecture/adr/002-almacenamiento-lecturas.md)
 - [ADR-003: Ingesta por MQTT con QoS 1 y credenciales por sensor](docs/architecture/adr/003-protocolo-ingesta.md)
+- [ADR-005: Patrones de diseño en el flujo de lecturas y alertas](docs/architecture/adr/005-patrones-de-diseno.md)
 
 ## Diseño UML (Lab 05)
 Diseño detallado de la historia crítica [HU-03: ingesta de una lectura y emisión de alerta](docs/design/historia.md), coherente con el ADR-001.
@@ -157,6 +158,75 @@ El nivel 4 (código) no se vuelve a dibujar: es el [diagrama de clases del Lab 0
 - [Bitácora de IA del Lab 06](docs/architecture/c4/bitacora-ia.md)
 
 La GitHub Action valida `workspace.dsl` con Structurizr CLI en cada push que lo modifica (falla si el modelo tiene errores) y regenera las imágenes.
+
+## Patrones de diseño (Lab 07)
+
+Se refactorizó el flujo crítico del Lab 05, **procesar una lectura y emitir la alerta**, en `src/monitoreo/`.
+La versión ingenua se conserva en `src/monitoreo/antes/servicio.py` y las mismas pruebas de caracterización
+corren sobre las dos versiones. Los servicios externos (Telegram, OpenAI, Gemini) están simulados en `externos.py`.
+
+```bash
+pip install pytest radon
+PYTHONPATH=src pytest tests                         # 85 passed, 1 xfailed
+radon cc -s -a src/monitoreo -e "*/antes/*,*/externos.py"
+```
+
+### Olor → patrón → prueba
+
+| Olor en la versión antes | Patrón | Archivo | Prueba que lo demuestra |
+|---|---|---|---|
+| `if/elif` por marca de sensor | Adapter + Factory | `sensores.py` | `test_marca_nueva_se_registra_sin_tocar_el_servicio` |
+| Validación de anomalías mezclada con el parseo | Decorator `FiltroAnomalias` | `sensores.py` | `test_filtro_de_anomalias_es_configurable` |
+| `if/elif` por norma ECA/OMS | Strategy `NormaCalidad` | `indices.py` | `test_norma_nueva_se_agrega_sin_tocar_el_servicio` |
+| Condicionales sobre `sensor.estado` | State | `estados.py` | `test_transiciones_fuera_del_diagrama_fallan` |
+| El servicio llama a mano al mapa, Telegram y analista | Observer | `eventos.py` | `test_suscriptor_nuevo_recibe_las_alertas` |
+| Bucle de reintentos dentro del flujo | Decorator `ConReintentos` | `eventos.py` | `test_reintentos_no_ocultan_errores_que_no_son_de_red` |
+| `if/elif` por proveedor de LLM | Adapter + Factory `ProveedorLLM` | `ia.py` | `test_ia_explica_la_alerta_con_cualquier_proveedor` |
+| Prompt repetido se paga dos veces | Decorator `ConCache` | `ia.py` | `test_cache_evita_pagar_dos_veces_el_mismo_prompt` |
+| Validaciones de la respuesta del LLM en línea | Chain of Responsibility | `ia.py` | `test_guardrails_bloquean_respuestas_inseguras_de_la_ia` |
+
+Error encontrado por las pruebas: en la versión antes, un sensor `SIN_SENAL` pasaba a `ACTIVO` aunque su
+payload no se pudiera leer (`test_payload_invalido_no_reactiva_un_sensor_sin_senal`, `xfail` en antes).
+
+### Métricas (radon 6.0.1)
+
+| | Antes | Con patrones |
+|---|:---:|:---:|
+| Complejidad de `procesar` | 26 (D) | 5 (A) |
+| Complejidad máxima | 26 (D) | 6 (B) |
+| Complejidad promedio | 6,2 (B) | 1,74 (A) |
+| SLOC | 127 | 356 |
+| Archivos | 1 | 6 |
+
+![Métricas](docs/design/patrones/img/metricas.png)
+
+Ganamos un servicio que no cambia al agregar marcas, normas, avisos o proveedores de IA; pagamos con casi el
+triple de líneas y más indirección. Patrones rechazados: Singleton, Proxy, Abstract Factory y LLM como juez
+(ver [metricas.md](docs/design/patrones/metricas.md) y [ADR-005](docs/architecture/adr/005-patrones-de-diseno.md)).
+
+### Diagramas
+
+| Adapter + Factory + Decorator | Strategy | State |
+|---|---|---|
+| ![](docs/design/patrones/img/adapter-factory.png) | ![](docs/design/patrones/img/strategy.png) | ![](docs/design/patrones/img/state.png) |
+
+| Observer + Decorator | IA: Adapter + Decorator + Chain |
+|---|---|
+| ![](docs/design/patrones/img/observer-decorator.png) | ![](docs/design/patrones/img/ia.png) |
+
+Colaboración en `procesar()`: [secuencia-patrones.puml](docs/design/patrones/secuencia-patrones.puml).
+El diagrama de clases del Lab 05 ([clases.puml](docs/design/clases.puml)) se actualizó y se verificó con pyreverse
+([verificacion-pyreverse.md](docs/design/patrones/verificacion-pyreverse.md)).
+
+### Documentos
+- [Olores detectados y decisión](docs/design/patrones/olores.md)
+- [Métricas y trade-off](docs/design/patrones/metricas.md)
+- [Bitácora de IA del Lab 07](docs/design/patrones/bitacora-ia.md)
+- [ADR-005: patrones de diseño](docs/architecture/adr/005-patrones-de-diseno.md)
+
+### Integración continua (reto B)
+La Action [`pruebas.yml`](.github/workflows/pruebas.yml) ejecuta `pytest` en cada push y Pull Request y falla si
+algún método de `src/monitoreo` (sin contar la versión antes) llega a complejidad 11 o más (`radon cc --min C`).
 
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.

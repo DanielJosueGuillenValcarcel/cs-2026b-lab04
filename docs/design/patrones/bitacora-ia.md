@@ -1,0 +1,16 @@
+# Bitácora de uso de IA — Laboratorio 07 (Patrones de diseño)
+
+Herramienta: Claude. La IA generó el análisis, el código y los diagramas a partir de nuestros prompts;
+la verificación se hizo con las pruebas (`pytest`), radon y pyreverse, y el equipo decidió qué entraba.
+
+| # | Fecha | Prompt (resumen) | Qué propuso la IA | Cómo lo verificamos | Decisión |
+|:---:|---|---|---|---|---|
+| 1 | 25/10 | Prompt IA 1 (detector de olores) sobre `antes/servicio.py`, sin código y sin Singleton | 9 olores con patrón, principio SOLID y costo (ver [olores.md](olores.md)), entre ellos un Proxy de caché de lecturas y que las fábricas fueran únicas | Se contrastó con la salida de radon (`procesar` = 26) y con el ADR-002 | 7 aceptados; Proxy y Singleton rechazados |
+| 2 | 25/10 | Prompt IA 2: aplicar solo Strategy + Adapter + Factory sin cambiar el comportamiento | `FabricaLectores` y `FabricaNormas` con el registro como atributo de clase | La prueba de marca nueva dejaba `AIRQ` registrada para todas las pruebas siguientes: era estado global, justo lo que la regla 2 del prompt prohíbe | **Corregida:** cada fábrica es una instancia que se inyecta en `ServicioMonitoreo`; se agregó `test_cada_servicio_tiene_su_propia_fabrica` |
+| 3 | 25/10 | Prompt IA 2: aplicar solo State a partir de `estados-sensor.mmd` | Clase base que prohíbe todo y una subclase por estado; `procesar` delega en `sensor.registrar_lectura()` después de leer el payload | Se agregó `test_sensor_en_mantenimiento_rechaza_tambien_lecturas_anomalas`: pasó en antes y **falló en después** (`DID NOT RAISE ValueError`). Con una lectura anómala `procesar` devolvía `DESCARTADA` sin preguntar al estado, así que un sensor en mantenimiento seguía “aceptando” lecturas | **Corregida:** también en el camino de descarte se llama a `registrar_lectura()`; 40 pruebas de comportamiento en verde |
+| 4 | 25/10 | Guardrails de IA para explicar una alerta a la ciudadanía | Cadena `NoInventaPM10` → `SinConsejosMedicos` → `LongitudMaxima`; como alternativa, usar un segundo LLM como juez | Se probaron 3 respuestas inválidas y 2 válidas con los clientes simulados de OpenAI y Gemini | Cadena aceptada; LLM juez **rechazado** (costo y latencia dobles para un MVP de 1 mes, no se puede probar de forma determinista) |
+| 5 | 25/10 | Diagramas PlantUML por patrón y actualización de `clases.puml` | 5 diagramas de clases con estereotipos y una secuencia de `procesar` | Se generó `classes_monitoreo.puml` con pyreverse (ver [verificacion-pyreverse.md](verificacion-pyreverse.md)) | Corregida: faltaba `SuscriptorBase` en el diagrama Observer |
+| 6 | 25/10 | Reto B: GitHub Action que falle si un método supera complejidad 10 | `radon cc src --min C` sobre todo `src/` | Al correrlo localmente falló por `ServicioIngesta.procesar_lote` (C 13) del Lab 05, que no es parte de este refactor, y por la versión antes, que se conserva a propósito | **Corregida:** el control se aplica a `src/monitoreo` excluyendo `antes/`; la deuda del Lab 05 quedó anotada en [metricas.md](metricas.md) |
+
+> No se usó ninguna clave de API: los LLM y Telegram son dobles de prueba en `src/monitoreo/externos.py`.
+> Nunca se incluyeron datos personales ni credenciales en los prompts.

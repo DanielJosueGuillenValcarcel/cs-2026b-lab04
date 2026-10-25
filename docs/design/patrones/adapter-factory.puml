@@ -1,0 +1,50 @@
+@startuml adapter-factory
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam stereotypeCBackgroundColor #C0392B
+skinparam noteBackgroundColor #FFF8E1
+hide empty members
+title Adapter + Factory + Decorator — lectura de sensores de distintas marcas
+
+class ServicioMonitoreo <<Client>> {
+  + procesar(codigo, payload): str
+}
+class FabricaLectores <<Factory>> {
+  - _registro: dict[str, type]
+  + registrar(marca, adaptador)
+  + crear(marca): LectorSensor
+}
+interface LectorSensor <<Target>> {
+  + leer(codigo, payload): Lectura
+}
+class AireSenseAdapter <<Adapter>> {
+  + leer(codigo, payload): Lectura
+}
+class PurairAdapter <<Adapter>> {
+  + leer(codigo, payload): Lectura
+}
+class FiltroAnomalias <<Decorator>> {
+  - lector: LectorSensor
+  - pm10_max: float
+  + leer(codigo, payload): Lectura
+}
+class "payload AireSense\n{pm10, pm25, ts ISO}" as PA <<Adaptee>>
+class "payload Purair\nPM10=..;PM2_5=..;T=epoch" as PP <<Adaptee>>
+
+ServicioMonitoreo --> FabricaLectores : crear(sensor.marca)
+ServicioMonitoreo ..> LectorSensor : leer()
+FabricaLectores ..> FiltroAnomalias : envuelve al adaptador
+LectorSensor <|.. AireSenseAdapter
+LectorSensor <|.. PurairAdapter
+LectorSensor <|.. FiltroAnomalias
+FiltroAnomalias o--> LectorSensor
+AireSenseAdapter ..> PA
+PurairAdapter ..> PP
+note bottom of FabricaLectores
+  Marca nueva: registrar("AIRQ", AirQAdapter).
+  ServicioMonitoreo no cambia.
+end note
+@enduml

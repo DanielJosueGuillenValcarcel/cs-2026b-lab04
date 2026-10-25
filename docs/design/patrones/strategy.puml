@@ -1,0 +1,43 @@
+@startuml strategy
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam stereotypeCBackgroundColor #C0392B
+skinparam noteBackgroundColor #FFF8E1
+hide empty members
+title Strategy — norma de calidad del aire (ECA Perú u OMS 2021)
+
+class ServicioMonitoreo <<Context>> {
+  - norma: NormaCalidad
+  + procesar(codigo, payload): str
+}
+class NormaCalidad <<Strategy>> {
+  + nombre: str
+  + pm10_limite: float
+  + pm25_limite: float
+  + clasificar(lectura): str
+}
+object "ECA : NormaCalidad" as ECA {
+  pm10_limite = 100
+  pm25_limite = 50
+}
+object "OMS : NormaCalidad" as OMS {
+  pm10_limite = 45
+  pm25_limite = 15
+}
+class FabricaNormas <<Factory>> {
+  + registrar(norma)
+  + crear(nombre): NormaCalidad
+}
+ServicioMonitoreo o--> NormaCalidad
+ServicioMonitoreo ..> FabricaNormas : crear("ECA")
+NormaCalidad <.. ECA : instancia
+NormaCalidad <.. OMS : instancia
+note right of NormaCalidad
+  Las dos normas solo difieren en los límites:
+  una sola clase con datos basta (no hace falta
+  una subclase por norma).
+end note
+@enduml

@@ -1,0 +1,33 @@
+@startuml secuencia-patrones
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam sequenceParticipantBackgroundColor #EEF2F8
+skinparam sequenceParticipantBorderColor #1A3A5C
+title Los patrones colaborando en ServicioMonitoreo.procesar() (lectura con PM10 > 150)
+participant ServicioMonitoreo as S
+participant "FabricaLectores\n<<Factory>>" as F
+participant "FiltroAnomalias\n<<Decorator>>" as D
+participant "AireSenseAdapter\n<<Adapter>>" as A
+participant "Sensor / Activo\n<<State>>" as E
+participant "NormaCalidad\n<<Strategy>>" as N
+participant "PublicadorEventos\n<<Observer>>" as P
+participant "NotificadorTelegram" as T
+participant "ConReintentos\n<<Decorator>>" as R
+S -> F : crear(sensor.marca)
+F --> S : FiltroAnomalias(AireSenseAdapter)
+S -> D : leer(codigo, payload)
+D -> A : leer(codigo, payload)
+A --> D : Lectura
+D --> S : Lectura válida
+S -> E : registrar_lectura()
+S -> N : clasificar(lectura)
+N --> S : "EXCEDE"
+S -> P : lectura_guardada(lectura, nivel)
+P -> P : MapaPublico: "mapa:AQP-07:EXCEDE"
+S -> P : alerta_abierta(alerta)
+P -> T : alerta_abierta(alerta)
+T -> R : enviar(texto)
+R -> R : hasta 3 intentos ante ConnectionError
+P -> P : AvisoAnalista: "analista:Cayma:180.0"
+S --> S : "GUARDADA"
+@enduml

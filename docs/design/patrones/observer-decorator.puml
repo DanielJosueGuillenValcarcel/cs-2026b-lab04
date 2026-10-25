@@ -1,0 +1,59 @@
+@startuml observer-decorator
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam classBackgroundColor #EEF2F8
+skinparam classBorderColor #1A3A5C
+skinparam stereotypeCBackgroundColor #C0392B
+skinparam noteBackgroundColor #FFF8E1
+hide empty members
+title Observer + Adapter + Decorator — avisos de lecturas y alertas
+
+class ServicioMonitoreo <<Client>> {
+  + procesar(codigo, payload): str
+}
+class PublicadorEventos <<Subject>> {
+  - _suscriptores: list
+  + suscribir(s)
+  + lectura_guardada(lectura, nivel)
+  + alerta_abierta(alerta)
+}
+interface Suscriptor <<Observer>> {
+  + lectura_guardada(lectura, nivel)
+  + alerta_abierta(alerta)
+}
+class SuscriptorBase
+class MapaPublico <<ConcreteObserver>>
+class NotificadorTelegram <<ConcreteObserver>>
+class AvisoAnalista <<ConcreteObserver>>
+interface CanalAlertas <<Component>> {
+  + enviar(texto)
+}
+class TelegramAdapter <<Adapter>> {
+  - bot
+  - chat_id
+  + enviar(texto)
+}
+class ConReintentos <<Decorator>> {
+  - canal: CanalAlertas
+  - intentos = 3
+  + enviar(texto)
+}
+class "TelegramBot (SDK)\nsend_message(chat_id, text)" as Bot <<Adaptee>>
+
+ServicioMonitoreo --> PublicadorEventos
+PublicadorEventos o--> "*" Suscriptor
+Suscriptor <|.. SuscriptorBase
+SuscriptorBase <|-- MapaPublico
+SuscriptorBase <|-- NotificadorTelegram
+SuscriptorBase <|-- AvisoAnalista
+NotificadorTelegram --> CanalAlertas
+CanalAlertas <|.. TelegramAdapter
+CanalAlertas <|.. ConReintentos
+ConReintentos o--> CanalAlertas
+TelegramAdapter --> Bot
+note bottom of ConReintentos
+  Reintenta solo ConnectionError;
+  cualquier otro error sube de inmediato.
+end note
+@enduml

@@ -1,0 +1,25 @@
+@startuml packages_monitoreo
+set namespaceSeparator none
+package "monitoreo" as monitoreo {
+}
+package "monitoreo.estados" as monitoreo.estados {
+}
+package "monitoreo.eventos" as monitoreo.eventos {
+}
+package "monitoreo.externos" as monitoreo.externos {
+}
+package "monitoreo.ia" as monitoreo.ia {
+}
+package "monitoreo.indices" as monitoreo.indices {
+}
+package "monitoreo.sensores" as monitoreo.sensores {
+}
+package "monitoreo.servicio" as monitoreo.servicio {
+}
+monitoreo.servicio --> monitoreo.estados
+monitoreo.servicio --> monitoreo.eventos
+monitoreo.servicio --> monitoreo.externos
+monitoreo.servicio --> monitoreo.ia
+monitoreo.servicio --> monitoreo.indices
+monitoreo.servicio --> monitoreo.sensores
+@enduml
