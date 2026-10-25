@@ -136,3 +136,9 @@ def test_guardrails_bloquean_respuestas_inseguras_de_la_ia(m, respuesta):
     with pytest.raises(ValueError, match="Guardrail"):
         s.explicar_alerta("Cayma", "OPENAI", ClienteOpenAISimulado(respuesta))
 
+
+def test_sensor_en_mantenimiento_rechaza_tambien_lecturas_anomalas(m):
+    s = servicio(m)
+    s.sensores["AQP-07"].enviar_a_mantenimiento()
+    with pytest.raises(ValueError):
+        s.procesar("AQP-07", payload_airesense(-5, 2, T0))

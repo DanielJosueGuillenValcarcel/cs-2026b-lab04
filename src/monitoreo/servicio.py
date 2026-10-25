@@ -1,57 +1,56 @@
-"""Etapa E2: lectura de sensores y norma de calidad con Adapter + Factory + Strategy."""
+"""Etapa E4: Observer para los avisos y Decorator para los reintentos de Telegram.
+
+La API pública es la misma que monitoreo.antes.servicio, así las pruebas de
+caracterización corren sobre las dos versiones.
+"""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from monitoreo.estados import Sensor
+from monitoreo.eventos import (AvisoAnalista, ConReintentos, MapaPublico, NotificadorTelegram,
+                               PublicadorEventos, TelegramAdapter)
 from monitoreo.externos import TelegramBotSimulado
 from monitoreo.indices import FabricaNormas
 from monitoreo.sensores import FabricaLectores, Lectura, LecturaDescartada
 
-CHAT_ALERTAS = "@airemisti_alertas"
+__all__ = ["Alerta", "Lectura", "Sensor", "ServicioMonitoreo"]
 
-
-@dataclass
-class Sensor:
-    codigo: str
-    distrito: str
-    marca: str
-    estado: str = "ACTIVO"
-
-    def marcar_sin_senal(self):
-        if self.estado == "ACTIVO":
-            self.estado = "SIN_SENAL"
-        else:
-            raise ValueError(f"No se puede marcar sin señal un sensor {self.estado}")
-
-    def enviar_a_mantenimiento(self):
-        if self.estado == "ACTIVO" or self.estado == "SIN_SENAL":
-            self.estado = "MANTENIMIENTO"
-        else:
-            raise ValueError(f"No se puede enviar a mantenimiento un sensor {self.estado}")
-
-    def dar_de_baja(self):
-        if self.estado == "MANTENIMIENTO" or self.estado == "SIN_SENAL":
-            self.estado = "BAJA"
-        else:
-            raise ValueError(f"No se puede dar de baja un sensor {self.estado}")
+UMBRAL_ALERTA_PM10 = 150
+VIGENCIA_ALERTA = timedelta(hours=1)
 
 
 @dataclass
 class Alerta:
     distrito: str
     pm10_max: float
-    vigente_hasta: datetime
+    vigente_hasta: object
     lecturas: int = 1
+
+    def vigente(self, momento) -> bool:
+        return momento <= self.vigente_hasta
+
+    def extender(self, lectura):
+        self.pm10_max = max(self.pm10_max, lectura.pm10)
+        self.vigente_hasta = lectura.medido_en + VIGENCIA_ALERTA
+        self.lecturas += 1
 
 
 class ServicioMonitoreo:
-    def __init__(self, telegram=None, norma="ECA", *, lectores=None, normas=None):
-        self.telegram = telegram or TelegramBotSimulado()
+    def __init__(self, telegram=None, norma="ECA", *, lectores=None, normas=None, publicador=None):
         self.lectores = lectores or FabricaLectores()
         self.norma = (normas or FabricaNormas()).crear(norma)
         self.sensores, self.lecturas, self.alertas, self.eventos = {}, {}, {}, []
+        self.publicador = publicador or self._publicador_por_defecto(telegram or TelegramBotSimulado())
+
+    def _publicador_por_defecto(self, bot):
+        p = PublicadorEventos()
+        p.suscribir(MapaPublico(self.eventos))
+        p.suscribir(NotificadorTelegram(ConReintentos(TelegramAdapter(bot)), self.eventos))
+        p.suscribir(AvisoAnalista(self.eventos))
+        return p
 
     def registrar_sensor(self, sensor):
         self.sensores[sensor.codigo] = sensor
@@ -60,48 +59,30 @@ class ServicioMonitoreo:
         sensor = self.sensores.get(codigo)
         if sensor is None:
             raise ValueError(f"Sensor no registrado: {codigo}")
-        if sensor.estado == "BAJA":
-            raise ValueError(f"El sensor {codigo} está dado de baja")
-        elif sensor.estado == "MANTENIMIENTO":
-            raise ValueError(f"El sensor {codigo} está en mantenimiento")
         lector = self.lectores.crear(sensor.marca)
         try:
             lectura = lector.leer(codigo, payload)
         except LecturaDescartada:
+            sensor.registrar_lectura()  # el sensor sí respondió; su estado decide si se acepta
             return "DESCARTADA"
-        if sensor.estado == "SIN_SENAL":
-            sensor.estado = "ACTIVO"
+        sensor.registrar_lectura()
         clave = (codigo, lectura.medido_en)
         if clave in self.lecturas:
             return "DUPLICADA"
         self.lecturas[clave] = lectura
-        self.eventos.append(f"mapa:{codigo}:{self.norma.clasificar(lectura)}")
-        pm10, medido_en = lectura.pm10, lectura.medido_en
-        if pm10 > 150:
-            alerta = self.alertas.get(sensor.distrito)
-            if alerta is not None and medido_en <= alerta.vigente_hasta:
-                alerta.pm10_max = max(alerta.pm10_max, pm10)
-                alerta.vigente_hasta = medido_en + timedelta(hours=1)
-                alerta.lecturas += 1
-            else:
-                alerta = Alerta(sensor.distrito, pm10, medido_en + timedelta(hours=1))
-                self.alertas[sensor.distrito] = alerta
-                texto = f"Alerta de calidad del aire en {sensor.distrito}: PM10 = {pm10:.1f} µg/m³."
-                enviado = False
-                for intento in range(3):
-                    try:
-                        self.telegram.send_message(CHAT_ALERTAS, texto)
-                        enviado = True
-                        break
-                    except ConnectionError:
-                        if intento == 2:
-                            enviado = False
-                if enviado:
-                    self.eventos.append(f"telegram:{texto}")
-                else:
-                    self.eventos.append(f"telegram_fallido:{sensor.distrito}")
-                self.eventos.append(f"analista:{sensor.distrito}:{pm10:.1f}")
+        self.publicador.lectura_guardada(lectura, self.norma.clasificar(lectura))
+        if lectura.pm10 > UMBRAL_ALERTA_PM10:
+            self._actualizar_alerta(sensor.distrito, lectura)
         return "GUARDADA"
+
+    def _actualizar_alerta(self, distrito, lectura):
+        alerta = self.alertas.get(distrito)
+        if alerta is not None and alerta.vigente(lectura.medido_en):
+            alerta.extender(lectura)
+            return
+        alerta = Alerta(distrito, lectura.pm10, lectura.medido_en + VIGENCIA_ALERTA)
+        self.alertas[distrito] = alerta
+        self.publicador.alerta_abierta(alerta)
 
     def explicar_alerta(self, distrito, proveedor, cliente):
         alerta = self.alertas[distrito]
