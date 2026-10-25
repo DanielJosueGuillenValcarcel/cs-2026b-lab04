@@ -1,0 +1,14 @@
+src/monitoreo/antes/servicio.py
+    M 66:4 ServicioMonitoreo.procesar - D (26)
+    C 55:0 ServicioMonitoreo - C (13)
+    M 125:4 ServicioMonitoreo.explicar_alerta - B (8)
+    C 13:0 Sensor - A (4)
+    M 25:4 Sensor.enviar_a_mantenimiento - A (3)
+    M 31:4 Sensor.dar_de_baja - A (3)
+    M 19:4 Sensor.marcar_sin_senal - A (2)
+    C 39:0 Lectura - A (1)
+    C 47:0 Alerta - A (1)
+    M 63:4 ServicioMonitoreo.registrar_sensor - A (1)
+
+10 blocks (classes, functions, methods) analyzed.
+Average complexity: B (6.2)
