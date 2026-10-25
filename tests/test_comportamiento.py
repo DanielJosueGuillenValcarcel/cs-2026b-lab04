@@ -6,7 +6,7 @@ import pytest
 from monitoreo.externos import (ClienteGeminiSimulado, ClienteOpenAISimulado, TelegramBotSimulado,
                                 payload_airesense, payload_purair)
 
-VERSIONES = ["monitoreo.antes.servicio"]
+VERSIONES = ["monitoreo.antes.servicio", "monitoreo.servicio"]
 T0 = "2026-10-20T10:00:00+00:00"
 T1 = "2026-10-20T10:01:00+00:00"
 
