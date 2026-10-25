@@ -1,11 +1,10 @@
-"""Etapa E4: Observer para los avisos y Decorator para los reintentos de Telegram.
+"""Flujo crítico refactorizado: procesar una lectura y emitir la alerta.
 
 La API pública es la misma que monitoreo.antes.servicio, así las pruebas de
 caracterización corren sobre las dos versiones.
 """
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from datetime import timedelta
 
@@ -13,6 +12,7 @@ from monitoreo.estados import Sensor
 from monitoreo.eventos import (AvisoAnalista, ConReintentos, MapaPublico, NotificadorTelegram,
                                PublicadorEventos, TelegramAdapter)
 from monitoreo.externos import TelegramBotSimulado
+from monitoreo.ia import ExplicadorAlertas, FabricaProveedores
 from monitoreo.indices import FabricaNormas
 from monitoreo.sensores import FabricaLectores, Lectura, LecturaDescartada
 
@@ -39,9 +39,11 @@ class Alerta:
 
 
 class ServicioMonitoreo:
-    def __init__(self, telegram=None, norma="ECA", *, lectores=None, normas=None, publicador=None):
+    def __init__(self, telegram=None, norma="ECA", *, lectores=None, normas=None, publicador=None,
+                 proveedores=None):
         self.lectores = lectores or FabricaLectores()
         self.norma = (normas or FabricaNormas()).crear(norma)
+        self.proveedores = proveedores or FabricaProveedores()
         self.sensores, self.lecturas, self.alertas, self.eventos = {}, {}, {}, []
         self.publicador = publicador or self._publicador_por_defecto(telegram or TelegramBotSimulado())
 
@@ -85,22 +87,5 @@ class ServicioMonitoreo:
         self.publicador.alerta_abierta(alerta)
 
     def explicar_alerta(self, distrito, proveedor, cliente):
-        alerta = self.alertas[distrito]
-        prompt = (f"Explica en lenguaje sencillo, en menos de 60 palabras, que en {distrito} "
-                  f"el PM10 llegó a {alerta.pm10_max:.1f} µg/m³ y qué precauciones tomar.")
-        if proveedor == "OPENAI":
-            r = cliente.chat_completions_create(model="gpt-4o-mini", messages=[{"role": "user", "content": prompt}])
-            texto = r["choices"][0]["message"]["content"]
-        elif proveedor == "GEMINI":
-            texto = cliente.generate_content(prompt).text
-        else:
-            raise ValueError(f"Proveedor de IA no soportado: {proveedor}")
-        for valor in re.findall(r"(\d+(?:[.,]\d+)?)\s*(?:µg/m³|ug/m3)", texto):
-            if abs(float(valor.replace(",", ".")) - alerta.pm10_max) > 0.05:
-                raise ValueError(f"Guardrail: la IA inventó un valor de PM10 ({valor})")
-        for palabra in ["diagnóstico", "medicamento", "tratamiento", "cura"]:
-            if palabra in texto.lower():
-                raise ValueError(f"Guardrail: consejo médico no permitido ('{palabra}')")
-        if len(texto) > 400:
-            raise ValueError("Guardrail: la explicación es demasiado larga para Telegram")
-        return texto
+        explicador = ExplicadorAlertas(self.proveedores.crear(proveedor, cliente))
+        return explicador.explicar(self.alertas[distrito])
