@@ -26,7 +26,7 @@ El camino de la alerta: **Ingesta** (monolito) → **cola de Celery en Redis** �
 | Insertar el backlog fila por fila en lugar de por lotes | — | — | 8,9 ms frente a 2,4 ms por lote de 120 (medido) | Se mantiene la inserción por lotes de ADR-002 |
 
 ## 5. Elementos instanciados
-- `ServicioIngesta._encolar_picos` separa picos frescos y antiguos (`VENTANA_ALERTA_PUBLICA = 10 min` en `compartido/parametros.py`).
+- `ServicioIngesta._encolar_picos` separa picos frescos y antiguos (`VENTANA_ALERTA_PUBLICA = 10 min` en `compartido/parametros.py`). Un mensaje de una sola lectura siempre es en vivo (mitiga R6 del ATAM-lite).
 - `Alerta.extender` usa `max(vigente_hasta, medido_en + 1 h)`.
 - Dos colas de Celery: `alertas` con un worker dedicado y `historico` para el analista.
 
@@ -50,8 +50,9 @@ Supuestos:
 
 **Punto de sensibilidad (gráfico derecho):** con la política actual, el p95 crece con el número de distritos que tuvieron picos durante el corte y supera 60 s desde 12 distritos, porque cada alerta antigua ocupa un turno de 3 s en el canal. Con la política adoptada la curva queda plana.
 
-**Límite de la táctica:** si el episodio sigue **en vivo** en todos los distritos a la vez, el canal vuelve a ser el cuello de botella: el p95 de la peor corrida es de 46 s con 20 distritos y de 63 s con 29.
+**Límite de la táctica:** si el episodio sigue **en vivo** en todos los distritos a la vez, el canal vuelve a ser el cuello de botella: el p95 de la peor corrida es de 46 s con 20 distritos y de 63 s con 29. Se registra como riesgo R2 en el [ATAM-lite](../atam-lite.md).
 
 ## 7. ¿Se cumple el escenario?
 - **QA-02: sí.** p95 de 1,0 s y peor corrida de 7 s, frente a 60 s.
 - **QA-05: sí.** El backlog se guarda en el tiempo que tardan los sensores en reconectar (60 s). Incluso si los 400 reconectan en el mismo instante, la ingesta lo procesa en ~2,4 s. El monolito con una sola ingesta es un **no riesgo**.
+- Queda como prueba en la integración continua: FF-05 y FF-06 en [tests/test_fitness.py](../../../tests/test_fitness.py). La decisión se registra en el [ADR-006](../adr/006-alertas-frescas-y-cola-prioritaria.md).
