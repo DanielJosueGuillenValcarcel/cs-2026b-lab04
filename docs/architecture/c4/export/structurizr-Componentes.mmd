@@ -4,43 +4,43 @@ graph LR
   subgraph diagram ["Nivel 3 — Componentes del Monolito Django"]
     style diagram fill:#ffffff,stroke:#ffffff
 
-    4["<div style='font-weight: bold'>Mapa web</div><div style='font-size: 70%; margin-top: 0px'>[Container: JavaScript + Leaflet]</div><div style='font-size: 80%; margin-top:10px'>Mapa en tiempo real para<br />ciudadanos y panel de<br />administración para el<br />analista.</div>"]
+    4["<div style='font-weight: bold'>Mapa web</div><div style='font-size: 70%; margin-top: 0px'>[Container: JavaScript + Leaflet]</div><div style='font-size: 80%; margin-top:10px'>Mapa en tiempo real para<br />ciudadanos y panel de<br />administración para el<br />analista. [QA-07]</div>"]
     style 4 fill:#438dd5,stroke:#2e6295,color:#ffffff
-    12["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto (QoS 1, persistente, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de los<br />sensores y las retiene si la<br />ingesta no está disponible.</div>"]
-    style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
-    13[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes y<br />alertas; un esquema por<br />módulo.</div>")]
+    13["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto 2.0 (QoS 1, cola de 200 000, autosave 60 s, ACL por patrón, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas, las<br />retiene hasta 8 h si la<br />ingesta no está disponible y<br />solo deja publicar a cada<br />sensor en su propio tema.<br />[QA-03, QA-04, QA-06, QA-08]</div>"]
     style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-    14[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y cola de tareas de Celery.</div>")]
+    14[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL 16]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes con<br />clave única (sensor, hora) y<br />alertas; un esquema por<br />módulo. [QA-01, QA-05]</div>")]
     style 14 fill:#438dd5,stroke:#2e6295,color:#ffffff
+    15[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y dos colas de Celery:<br />alertas e historico. [QA-02,<br />QA-07]</div>")]
+    style 15 fill:#438dd5,stroke:#2e6295,color:#ffffff
 
     subgraph 5 ["Monolito Django"]
       style 5 fill:#ffffff,stroke:#2e6295,color:#2e6295
 
       10["<div style='font-weight: bold'>Mapa público</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django REST Framework]</div><div style='font-size: 80%; margin-top:10px'>API de solo lectura con el<br />nivel de cada sensor y las<br />alertas vigentes.</div>"]
       style 10 fill:#85bbf0,stroke:#5d82a8,color:#000000
-      6["<div style='font-weight: bold'>Ingesta</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app + paho-mqtt]</div><div style='font-size: 80%; margin-top:10px'>Se suscribe a<br />airemisti/+/lecturas, valida<br />cada lote y lo guarda sin<br />duplicados. Corre como<br />proceso aparte (manage.py<br />ingesta).</div>"]
+      6["<div style='font-weight: bold'>Ingesta</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app + paho-mqtt]</div><div style='font-size: 80%; margin-top:10px'>Se suscribe a<br />airemisti/+/lecturas, guarda<br />cada lote sin duplicados,<br />publica el acuse<br />airemisti/<sensor>/ack y<br />envía solo los picos frescos<br />a la cola alertas. Corre como<br />proceso aparte (manage.py<br />ingesta). [QA-01, QA-02,<br />QA-05]</div>"]
       style 6 fill:#85bbf0,stroke:#5d82a8,color:#000000
       7["<div style='font-weight: bold'>Sensores</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app]</div><div style='font-size: 80%; margin-top:10px'>Registro, ubicación y ciclo<br />de vida de los sensores<br />(ACTIVO, SIN_SENAL,<br />SINCRONIZANDO, MANTENIMIENTO,<br />BAJA).</div>"]
       style 7 fill:#85bbf0,stroke:#5d82a8,color:#000000
       8["<div style='font-weight: bold'>Lecturas e histórico</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app]</div><div style='font-size: 80%; margin-top:10px'>Guarda lecturas por lotes con<br />ON CONFLICT DO NOTHING y<br />exporta el histórico en CSV.</div>"]
       style 8 fill:#85bbf0,stroke:#5d82a8,color:#000000
-      9["<div style='font-weight: bold'>Alertas</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app]</div><div style='font-size: 80%; margin-top:10px'>Decide si una lectura supera<br />el umbral y gestiona la<br />alerta vigente por distrito;<br />su tarea evaluar() la ejecuta<br />el Worker.</div>"]
+      9["<div style='font-weight: bold'>Alertas</div><div style='font-size: 70%; margin-top: 0px'>[Component: Django app]</div><div style='font-size: 80%; margin-top:10px'>Decide si una lectura supera<br />el umbral y gestiona la<br />alerta vigente por distrito;<br />su tarea evaluar() la ejecuta<br />el Worker de alertas. [QA-02]</div>"]
       style 9 fill:#85bbf0,stroke:#5d82a8,color:#000000
     end
 
     4-. "<div>Consulta niveles y alertas<br />vigentes</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->10
     4-. "<div>Registra y da de baja<br />sensores</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->7
     4-. "<div>Descarga el histórico</div><div style='font-size: 70%'>[HTTPS/CSV]</div>" .->8
-    6-. "<div>Recibe lecturas</div><div style='font-size: 70%'>[MQTT]</div>" .->12
+    6-. "<div>Recibe lecturas y publica<br />acuses</div><div style='font-size: 70%'>[MQTT]</div>" .->13
     6-. "<div>Valida el sensor y actualiza<br />su estado</div><div style='font-size: 70%'></div>" .->7
     6-. "<div>Guarda el lote sin duplicados</div><div style='font-size: 70%'></div>" .->8
-    6-. "<div>Encola evaluar() como tarea<br />Celery</div><div style='font-size: 70%'></div>" .->9
+    6-. "<div>Encola evaluar() en la cola<br />alertas (solo picos frescos)</div><div style='font-size: 70%'></div>" .->9
     9-. "<div>Usa la lectura que superó el<br />umbral</div><div style='font-size: 70%'></div>" .->8
     10-. "<div>Lee ubicación y estado</div><div style='font-size: 70%'></div>" .->7
     10-. "<div>Lee el histórico reciente</div><div style='font-size: 70%'></div>" .->8
     10-. "<div>Lee alertas vigentes</div><div style='font-size: 70%'></div>" .->9
-    7-. "<div>Lee y escribe</div><div style='font-size: 70%'>[SQL]</div>" .->13
-    8-. "<div>Inserta por lotes y consulta</div><div style='font-size: 70%'>[SQL]</div>" .->13
-    9-. "<div>Encola la tarea</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
-    10-. "<div>Lee las últimas lecturas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
+    7-. "<div>Lee y escribe</div><div style='font-size: 70%'>[SQL]</div>" .->14
+    8-. "<div>Inserta por lotes y consulta</div><div style='font-size: 70%'>[SQL]</div>" .->14
+    9-. "<div>Encola la tarea</div><div style='font-size: 70%'>[Redis protocol]</div>" .->15
+    10-. "<div>Lee las últimas lecturas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->15
   end

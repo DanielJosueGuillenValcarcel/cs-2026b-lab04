@@ -19,12 +19,12 @@ AddElementTag("Infrastructure Node", $bgColor="#ffffff", $borderColor="#b2b2b2",
 
 AddRelTag("Relationship", $textColor="#707070", $lineColor="#707070", $lineStyle = "")
 
-Deployment_Node(Producción.Sensordecalidaddelairex40, "Sensor de calidad del aire (x40)", $type="Microcontrolador con WiFi/4G y microSD", $descr="Mide PM10 y PM2.5 cada minuto.", $tags="Element", $link="") {
-  System(Producción.Sensordecalidaddelairex40.ReddesensoresPM10PM25_1, "Red de sensores PM10 / PM2.5", $descr="40 sensores con WiFi/4G y microSD que miden cada minuto y guardan lecturas durante los cortes.", $tags="Software System,Externo", $link="")
+Deployment_Node(Producción.Sensordecalidaddelairex400, "Sensor de calidad del aire (x400)", $type="Microcontrolador con WiFi/4G y microSD", $descr="Mide PM10 y PM2.5 cada minuto.", $tags="Element", $link="") {
+  System(Producción.Sensordecalidaddelairex400.ReddesensoresPM10PM25_1, "Red de sensores PM10 / PM2.5", $descr="400 sensores con WiFi/4G y microSD que miden cada minuto y conservan toda lectura no confirmada hasta recibir el acuse. [QA-01]", $tags="Software System,Externo", $link="")
 }
 
 Deployment_Node(Producción.Dispositivodelusuario, "Dispositivo del usuario", $type="Celular o PC con navegador web", $descr="", $tags="Element", $link="") {
-  Container(Producción.Dispositivodelusuario.Mapaweb_1, "Mapa web", $techn="JavaScript + Leaflet", $descr="Mapa en tiempo real para ciudadanos y panel de administración para el analista.", $tags="Container,Web Browser", $link="")
+  Container(Producción.Dispositivodelusuario.Mapaweb_1, "Mapa web", $techn="JavaScript + Leaflet", $descr="Mapa en tiempo real para ciudadanos y panel de administración para el analista. [QA-07]", $tags="Container,Web Browser", $link="")
 }
 
 Deployment_Node(Producción.VPSenlanube, "VPS en la nube", $type="Ubuntu 24.04 LTS, 4 vCPU / 8 GB RAM", $descr="Único servidor del MVP (R-03).", $tags="Element", $link="") {
@@ -32,36 +32,41 @@ Deployment_Node(Producción.VPSenlanube, "VPS en la nube", $type="Ubuntu 24.04 L
   Deployment_Node(Producción.VPSenlanube.PrometheusGrafana, "Prometheus + Grafana", $type="Prometheus / Grafana", $descr="Métricas y tableros de monitoreo.", $tags="Infrastructure Node", $link="")
   Deployment_Node(Producción.VPSenlanube.EntornoPython, "Entorno Python", $type="Python 3.12 (virtualenv), servicios systemd", $descr="", $tags="Element", $link="") {
     Deployment_Node(Producción.VPSenlanube.EntornoPython.Gunicorn, "Gunicorn", $type="Gunicorn WSGI", $descr="Sirve la API y ejecuta el proceso de ingesta.", $tags="Element", $link="") {
-      Container(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, "Monolito Django", $techn="Python 3.12 / Django + Gunicorn", $descr="Monolito modular: API REST, vistas web y proceso de ingesta suscrito al broker.", $tags="Container", $link="")
+      Container(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, "Monolito Django", $techn="Python 3.12 / Django + Gunicorn", $descr="Monolito modular: API REST, vistas web y proceso de ingesta suscrito al broker. La ingesta separa los picos frescos de los del backlog y confirma cada lote guardado. [QA-01, QA-02, QA-05]", $tags="Container", $link="")
     }
 
-    Deployment_Node(Producción.VPSenlanube.EntornoPython.Celery, "Celery", $type="Celery worker + beat", $descr="", $tags="Element", $link="") {
-      Container(Producción.VPSenlanube.EntornoPython.Celery.WorkerCelery_1, "Worker Celery", $techn="Python 3.12 / Celery", $descr="Evalúa el umbral, crea y publica las alertas, y revisa los sensores sin señal (RF-07).", $tags="Container", $link="")
+    Deployment_Node(Producción.VPSenlanube.EntornoPython.Celery, "Celery", $type="Dos workers: -Q alertas y -Q historico, + beat", $descr="", $tags="Element", $link="") {
+      Container(Producción.VPSenlanube.EntornoPython.Celery.Workerdealertas_1, "Worker de alertas", $techn="Python 3.12 / Celery (cola alertas)", $descr="Consume solo la cola alertas (picos frescos): evalúa el umbral y publica la alerta. [QA-02]", $tags="Container", $link="")
+      Container(Producción.VPSenlanube.EntornoPython.Celery.Workerhistórico_1, "Worker histórico", $techn="Python 3.12 / Celery (cola historico)", $descr="Consume la cola historico: avisa al analista de los picos del backlog y revisa los sensores sin señal (RF-07). [QA-02]", $tags="Container", $link="")
     }
 
   }
 
   Deployment_Node(Producción.VPSenlanube.Mosquitto, "Mosquitto", $type="Servicio systemd, puerto 8883", $descr="", $tags="Element", $link="") {
-    ContainerQueue(Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Broker MQTT", $techn="Eclipse Mosquitto (QoS 1, persistente, TLS)", $descr="Recibe las lecturas de los sensores y las retiene si la ingesta no está disponible.", $tags="Container,Queue", $link="")
+    ContainerQueue(Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Broker MQTT", $techn="Eclipse Mosquitto 2.0 (QoS 1, cola de 200 000, autosave 60 s, ACL por patrón, TLS)", $descr="Recibe las lecturas, las retiene hasta 8 h si la ingesta no está disponible y solo deja publicar a cada sensor en su propio tema. [QA-03, QA-04, QA-06, QA-08]", $tags="Container,Queue", $link="")
   }
 
   Deployment_Node(Producción.VPSenlanube.PostgreSQL, "PostgreSQL", $type="Servicio systemd, puerto 5432 local", $descr="", $tags="Element", $link="") {
-    ContainerDb(Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Base de datos", $techn="PostgreSQL", $descr="Sensores, lecturas particionadas por mes y alertas; un esquema por módulo.", $tags="Container,Database", $link="")
+    ContainerDb(Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Base de datos", $techn="PostgreSQL 16", $descr="Sensores, lecturas particionadas por mes con clave única (sensor, hora) y alertas; un esquema por módulo. [QA-01, QA-05]", $tags="Container,Database", $link="")
   }
 
   Deployment_Node(Producción.VPSenlanube.Redis, "Redis", $type="Servicio systemd, puerto 6379 local", $descr="", $tags="Element", $link="") {
-    ContainerDb(Producción.VPSenlanube.Redis.Colaycaché_1, "Cola y caché", $techn="Redis", $descr="Últimas lecturas para el mapa y cola de tareas de Celery.", $tags="Container,Database", $link="")
+    ContainerDb(Producción.VPSenlanube.Redis.Colaycaché_1, "Cola y caché", $techn="Redis", $descr="Últimas lecturas para el mapa y dos colas de Celery: alertas e historico. [QA-02, QA-07]", $tags="Container,Database", $link="")
   }
 
 }
 
 Rel(Producción.Dispositivodelusuario.Mapaweb_1, Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, "Pide niveles, alertas y CSV", $techn="HTTPS/JSON (REST)", $tags="Relationship", $link="")
-Rel(Producción.Sensordecalidaddelairex40.ReddesensoresPM10PM25_1, Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Publica lecturas en su tema (QoS 1)", $techn="MQTT/TLS 8883", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, Producción.Sensordecalidaddelairex400.ReddesensoresPM10PM25_1, "Entrega el acuse al sensor", $techn="MQTT/TLS 8883", $tags="Relationship", $link="")
+Rel(Producción.Sensordecalidaddelairex400.ReddesensoresPM10PM25_1, Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Publica lecturas en su tema (QoS 1)", $techn="MQTT/TLS 8883", $tags="Relationship", $link="")
 Rel(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Se suscribe a las lecturas (sesión persistente)", $techn="MQTT", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, Producción.VPSenlanube.Mosquitto.BrokerMQTT_1, "Publica el acuse de cada lote guardado", $techn="MQTT", $tags="Relationship", $link="")
 Rel(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Lee y escribe", $techn="SQL/TCP", $tags="Relationship", $link="")
-Rel(Producción.VPSenlanube.EntornoPython.Celery.WorkerCelery_1, Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Lee lecturas y registra alertas", $techn="SQL/TCP", $tags="Relationship", $link="")
-Rel(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, Producción.VPSenlanube.Redis.Colaycaché_1, "Guarda la última lectura y encola la evaluación de alertas", $techn="Redis protocol", $tags="Relationship", $link="")
-Rel(Producción.VPSenlanube.EntornoPython.Celery.WorkerCelery_1, Producción.VPSenlanube.Redis.Colaycaché_1, "Consume tareas", $techn="Redis protocol", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Celery.Workerdealertas_1, Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Registra la alerta del distrito", $techn="SQL/TCP", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Celery.Workerhistórico_1, Producción.VPSenlanube.PostgreSQL.Basededatos_1, "Lee lecturas y estados de los sensores", $techn="SQL/TCP", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, Producción.VPSenlanube.Redis.Colaycaché_1, "Guarda la última lectura y encola los picos en alertas o historico", $techn="Redis protocol", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Celery.Workerdealertas_1, Producción.VPSenlanube.Redis.Colaycaché_1, "Consume la cola alertas", $techn="Redis protocol", $tags="Relationship", $link="")
+Rel(Producción.VPSenlanube.EntornoPython.Celery.Workerhistórico_1, Producción.VPSenlanube.Redis.Colaycaché_1, "Consume la cola historico", $techn="Redis protocol", $tags="Relationship", $link="")
 Rel(Producción.VPSenlanube.Nginx, Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, "Reenvía las peticiones HTTPS", $techn="HTTP (proxy inverso)", $tags="Relationship", $link="")
 Rel(Producción.VPSenlanube.PrometheusGrafana, Producción.VPSenlanube.EntornoPython.Gunicorn.MonolitoDjango_1, "Recoge métricas", $techn="HTTP /metrics", $tags="Relationship", $link="")
 

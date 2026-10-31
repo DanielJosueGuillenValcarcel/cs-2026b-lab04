@@ -2,7 +2,7 @@
 
 ## 1. Entradas revisadas
 [ADR-003](../adr/003-protocolo-ingesta.md) (usuario y contraseña por sensor, TLS y ACL), los escenarios QA-04, QA-06 y QA-08 del
-[árbol de utilidad](../utilidad/escenarios.md) y el riesgo R4 del ATAM-lite.
+[árbol de utilidad](../utilidad/escenarios.md) y el riesgo R4 del [ATAM-lite](../atam-lite.md).
 
 ## 2. Objetivo
 - **QA-06 (H,M):** un sensor con credenciales robadas no puede publicar en el tema de otro sensor (0 publicaciones cruzadas aceptadas).
@@ -41,3 +41,4 @@ La seguridad no se puede simular igual que la latencia, así que se compararon a
 - **QA-06: sí.** 0 publicaciones cruzadas.
 - **QA-04:** se mantiene (100 % de conexiones sin credenciales rechazadas).
 - **QA-08: sí.** 50 altas en menos de 1 s de trabajo del broker, sin reinicio.
+- Fitness functions: FF-08 (ninguna regla de escritura de la ACL sin `%u`), FF-11 y FF-12 (Mosquitto real). Decisión registrada en el [ADR-008](../adr/008-credenciales-por-sensor-y-acl-con-patron.md).

@@ -4,76 +4,82 @@ graph LR
   subgraph diagram ["Vista de despliegue — Producción (MVP)"]
     style diagram fill:#ffffff,stroke:#ffffff
 
-    subgraph 50 ["Sensor de calidad del aire (x40)"]
-      style 50 fill:#ffffff,stroke:#888888,color:#000000
+    subgraph 56 ["Sensor de calidad del aire (x400)"]
+      style 56 fill:#ffffff,stroke:#888888,color:#000000
 
-      51["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
-      style 51 fill:#999999,stroke:#6b6b6b,color:#ffffff
+      57["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>400 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y conservan toda lectura no<br />confirmada hasta recibir el<br />acuse. [QA-01]</div>"]
+      style 57 fill:#999999,stroke:#6b6b6b,color:#ffffff
     end
 
-    subgraph 52 ["Dispositivo del usuario"]
-      style 52 fill:#ffffff,stroke:#888888,color:#000000
+    subgraph 58 ["Dispositivo del usuario"]
+      style 58 fill:#ffffff,stroke:#888888,color:#000000
 
-      53["<div style='font-weight: bold'>Mapa web</div><div style='font-size: 70%; margin-top: 0px'>[Container: JavaScript + Leaflet]</div><div style='font-size: 80%; margin-top:10px'>Mapa en tiempo real para<br />ciudadanos y panel de<br />administración para el<br />analista.</div>"]
-      style 53 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      59["<div style='font-weight: bold'>Mapa web</div><div style='font-size: 70%; margin-top: 0px'>[Container: JavaScript + Leaflet]</div><div style='font-size: 80%; margin-top:10px'>Mapa en tiempo real para<br />ciudadanos y panel de<br />administración para el<br />analista. [QA-07]</div>"]
+      style 59 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
-    subgraph 54 ["VPS en la nube"]
-      style 54 fill:#ffffff,stroke:#888888,color:#000000
+    subgraph 60 ["VPS en la nube"]
+      style 60 fill:#ffffff,stroke:#888888,color:#000000
 
-      55["<div style='font-weight: bold'>Nginx</div><div style='font-size: 70%; margin-top: 0px'>[Infrastructure Node: Nginx]</div><div style='font-size: 80%; margin-top:10px'>Proxy inverso y terminación<br />TLS.</div>"]
-      style 55 fill:#ffffff,stroke:#b2b2b2,color:#000000
-      56["<div style='font-weight: bold'>Prometheus + Grafana</div><div style='font-size: 70%; margin-top: 0px'>[Infrastructure Node: Prometheus / Grafana]</div><div style='font-size: 80%; margin-top:10px'>Métricas y tableros de<br />monitoreo.</div>"]
-      style 56 fill:#ffffff,stroke:#b2b2b2,color:#000000
-      subgraph 57 ["Entorno Python"]
-        style 57 fill:#ffffff,stroke:#888888,color:#000000
-
-        subgraph 58 ["Gunicorn"]
-          style 58 fill:#ffffff,stroke:#888888,color:#000000
-
-          59["<div style='font-weight: bold'>Monolito Django</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Django + Gunicorn]</div><div style='font-size: 80%; margin-top:10px'>Monolito modular: API REST,<br />vistas web y proceso de<br />ingesta suscrito al broker.</div>"]
-          style 59 fill:#438dd5,stroke:#2e6295,color:#ffffff
-        end
-
-        subgraph 61 ["Celery"]
-          style 61 fill:#ffffff,stroke:#888888,color:#000000
-
-          62["<div style='font-weight: bold'>Worker Celery</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery]</div><div style='font-size: 80%; margin-top:10px'>Evalúa el umbral, crea y<br />publica las alertas, y revisa<br />los sensores sin señal<br />(RF-07).</div>"]
-          style 62 fill:#438dd5,stroke:#2e6295,color:#ffffff
-        end
-
-      end
-
-      subgraph 63 ["Mosquitto"]
+      61["<div style='font-weight: bold'>Nginx</div><div style='font-size: 70%; margin-top: 0px'>[Infrastructure Node: Nginx]</div><div style='font-size: 80%; margin-top:10px'>Proxy inverso y terminación<br />TLS.</div>"]
+      style 61 fill:#ffffff,stroke:#b2b2b2,color:#000000
+      62["<div style='font-weight: bold'>Prometheus + Grafana</div><div style='font-size: 70%; margin-top: 0px'>[Infrastructure Node: Prometheus / Grafana]</div><div style='font-size: 80%; margin-top:10px'>Métricas y tableros de<br />monitoreo.</div>"]
+      style 62 fill:#ffffff,stroke:#b2b2b2,color:#000000
+      subgraph 63 ["Entorno Python"]
         style 63 fill:#ffffff,stroke:#888888,color:#000000
 
-        64["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto (QoS 1, persistente, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de los<br />sensores y las retiene si la<br />ingesta no está disponible.</div>"]
-        style 64 fill:#438dd5,stroke:#2e6295,color:#ffffff
+        subgraph 64 ["Gunicorn"]
+          style 64 fill:#ffffff,stroke:#888888,color:#000000
+
+          65["<div style='font-weight: bold'>Monolito Django</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Django + Gunicorn]</div><div style='font-size: 80%; margin-top:10px'>Monolito modular: API REST,<br />vistas web y proceso de<br />ingesta suscrito al broker.<br />La ingesta separa los picos<br />frescos de los del backlog y<br />confirma cada lote guardado.<br />[QA-01, QA-02, QA-05]</div>"]
+          style 65 fill:#438dd5,stroke:#2e6295,color:#ffffff
+        end
+
+        subgraph 67 ["Celery"]
+          style 67 fill:#ffffff,stroke:#888888,color:#000000
+
+          68["<div style='font-weight: bold'>Worker de alertas</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery (cola alertas)]</div><div style='font-size: 80%; margin-top:10px'>Consume solo la cola alertas<br />(picos frescos): evalúa el<br />umbral y publica la alerta.<br />[QA-02]</div>"]
+          style 68 fill:#438dd5,stroke:#2e6295,color:#ffffff
+          69["<div style='font-weight: bold'>Worker histórico</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery (cola historico)]</div><div style='font-size: 80%; margin-top:10px'>Consume la cola historico:<br />avisa al analista de los<br />picos del backlog y revisa<br />los sensores sin señal<br />(RF-07). [QA-02]</div>"]
+          style 69 fill:#438dd5,stroke:#2e6295,color:#ffffff
+        end
+
       end
 
-      subgraph 67 ["PostgreSQL"]
-        style 67 fill:#ffffff,stroke:#888888,color:#000000
+      subgraph 70 ["Mosquitto"]
+        style 70 fill:#ffffff,stroke:#888888,color:#000000
 
-        68[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes y<br />alertas; un esquema por<br />módulo.</div>")]
-        style 68 fill:#438dd5,stroke:#2e6295,color:#ffffff
+        71["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto 2.0 (QoS 1, cola de 200 000, autosave 60 s, ACL por patrón, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas, las<br />retiene hasta 8 h si la<br />ingesta no está disponible y<br />solo deja publicar a cada<br />sensor en su propio tema.<br />[QA-03, QA-04, QA-06, QA-08]</div>"]
+        style 71 fill:#438dd5,stroke:#2e6295,color:#ffffff
       end
 
-      subgraph 71 ["Redis"]
-        style 71 fill:#ffffff,stroke:#888888,color:#000000
+      subgraph 76 ["PostgreSQL"]
+        style 76 fill:#ffffff,stroke:#888888,color:#000000
 
-        72[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y cola de tareas de Celery.</div>")]
-        style 72 fill:#438dd5,stroke:#2e6295,color:#ffffff
+        77[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL 16]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes con<br />clave única (sensor, hora) y<br />alertas; un esquema por<br />módulo. [QA-01, QA-05]</div>")]
+        style 77 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      end
+
+      subgraph 81 ["Redis"]
+        style 81 fill:#ffffff,stroke:#888888,color:#000000
+
+        82[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y dos colas de Celery:<br />alertas e historico. [QA-02,<br />QA-07]</div>")]
+        style 82 fill:#438dd5,stroke:#2e6295,color:#ffffff
       end
 
     end
 
-    53-. "<div>Pide niveles, alertas y CSV</div><div style='font-size: 70%'>[HTTPS/JSON (REST)]</div>" .->59
-    51-. "<div>Publica lecturas en su tema<br />(QoS 1)</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->64
-    59-. "<div>Se suscribe a las lecturas<br />(sesión persistente)</div><div style='font-size: 70%'>[MQTT]</div>" .->64
-    59-. "<div>Lee y escribe</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->68
-    62-. "<div>Lee lecturas y registra<br />alertas</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->68
-    59-. "<div>Guarda la última lectura y<br />encola la evaluación de<br />alertas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->72
-    62-. "<div>Consume tareas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->72
-    55-. "<div>Reenvía las peticiones HTTPS</div><div style='font-size: 70%'>[HTTP (proxy inverso)]</div>" .->59
-    56-. "<div>Recoge métricas</div><div style='font-size: 70%'>[HTTP /metrics]</div>" .->59
+    59-. "<div>Pide niveles, alertas y CSV</div><div style='font-size: 70%'>[HTTPS/JSON (REST)]</div>" .->65
+    71-. "<div>Entrega el acuse al sensor</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->57
+    57-. "<div>Publica lecturas en su tema<br />(QoS 1)</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->71
+    65-. "<div>Se suscribe a las lecturas<br />(sesión persistente)</div><div style='font-size: 70%'>[MQTT]</div>" .->71
+    65-. "<div>Publica el acuse de cada lote<br />guardado</div><div style='font-size: 70%'>[MQTT]</div>" .->71
+    65-. "<div>Lee y escribe</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->77
+    68-. "<div>Registra la alerta del<br />distrito</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->77
+    69-. "<div>Lee lecturas y estados de los<br />sensores</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->77
+    65-. "<div>Guarda la última lectura y<br />encola los picos en alertas o<br />historico</div><div style='font-size: 70%'>[Redis protocol]</div>" .->82
+    68-. "<div>Consume la cola alertas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->82
+    69-. "<div>Consume la cola historico</div><div style='font-size: 70%'>[Redis protocol]</div>" .->82
+    61-. "<div>Reenvía las peticiones HTTPS</div><div style='font-size: 70%'>[HTTP (proxy inverso)]</div>" .->65
+    62-. "<div>Recoge métricas</div><div style='font-size: 70%'>[HTTP /metrics]</div>" .->65
   end

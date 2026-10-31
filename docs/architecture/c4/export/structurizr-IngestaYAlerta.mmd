@@ -7,31 +7,32 @@ graph LR
     subgraph 3 ["AireMisti IoT"]
       style 3 fill:#ffffff,stroke:#0b4884,color:#0b4884
 
-      11["<div style='font-weight: bold'>Worker Celery</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery]</div><div style='font-size: 80%; margin-top:10px'>Evalúa el umbral, crea y<br />publica las alertas, y revisa<br />los sensores sin señal<br />(RF-07).</div>"]
+      11["<div style='font-weight: bold'>Worker de alertas</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Celery (cola alertas)]</div><div style='font-size: 80%; margin-top:10px'>Consume solo la cola alertas<br />(picos frescos): evalúa el<br />umbral y publica la alerta.<br />[QA-02]</div>"]
       style 11 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      12["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto (QoS 1, persistente, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de los<br />sensores y las retiene si la<br />ingesta no está disponible.</div>"]
-      style 12 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      13[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes y<br />alertas; un esquema por<br />módulo.</div>")]
+      13["<div style='font-weight: bold'>Broker MQTT</div><div style='font-size: 70%; margin-top: 0px'>[Container: Eclipse Mosquitto 2.0 (QoS 1, cola de 200 000, autosave 60 s, ACL por patrón, TLS)]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas, las<br />retiene hasta 8 h si la<br />ingesta no está disponible y<br />solo deja publicar a cada<br />sensor en su propio tema.<br />[QA-03, QA-04, QA-06, QA-08]</div>"]
       style 13 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      14[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y cola de tareas de Celery.</div>")]
+      14[("<div style='font-weight: bold'>Base de datos</div><div style='font-size: 70%; margin-top: 0px'>[Container: PostgreSQL 16]</div><div style='font-size: 80%; margin-top:10px'>Sensores, lecturas<br />particionadas por mes con<br />clave única (sensor, hora) y<br />alertas; un esquema por<br />módulo. [QA-01, QA-05]</div>")]
       style 14 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      5["<div style='font-weight: bold'>Monolito Django</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Django + Gunicorn]</div><div style='font-size: 80%; margin-top:10px'>Monolito modular: API REST,<br />vistas web y proceso de<br />ingesta suscrito al broker.</div>"]
+      15[("<div style='font-weight: bold'>Cola y caché</div><div style='font-size: 70%; margin-top: 0px'>[Container: Redis]</div><div style='font-size: 80%; margin-top:10px'>Últimas lecturas para el mapa<br />y dos colas de Celery:<br />alertas e historico. [QA-02,<br />QA-07]</div>")]
+      style 15 fill:#438dd5,stroke:#2e6295,color:#ffffff
+      5["<div style='font-weight: bold'>Monolito Django</div><div style='font-size: 70%; margin-top: 0px'>[Container: Python 3.12 / Django + Gunicorn]</div><div style='font-size: 80%; margin-top:10px'>Monolito modular: API REST,<br />vistas web y proceso de<br />ingesta suscrito al broker.<br />La ingesta separa los picos<br />frescos de los del backlog y<br />confirma cada lote guardado.<br />[QA-01, QA-02, QA-05]</div>"]
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff
     end
 
     1["<div style='font-weight: bold'>Ciudadano</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Vecino de Arequipa que<br />consulta la calidad del aire<br />y recibe alertas.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
-    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    16["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>400 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y conservan toda lectura no<br />confirmada hasta recibir el<br />acuse. [QA-01]</div>"]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    17["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
 
-    15-. "<div>1. Publica la lectura con QoS<br />1</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->12
-    5-. "<div>2. Consume la lectura de su<br />suscripción</div><div style='font-size: 70%'>[MQTT]</div>" .->12
-    5-. "<div>3. Guarda el lote con ON<br />CONFLICT DO NOTHING</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->13
-    5-. "<div>4. Actualiza la última<br />lectura y encola evaluar()</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
-    11-. "<div>5. Toma la tarea de la cola</div><div style='font-size: 70%'>[Redis protocol]</div>" .->14
-    11-. "<div>6. Registra la alerta del<br />distrito</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->13
-    11-. "<div>7. Publica la alerta</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->16
-    16-. "<div>8. Notifica a los<br />suscriptores del canal</div><div style='font-size: 70%'></div>" .->1
+    16-. "<div>1. Publica la lectura con QoS<br />1</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->13
+    5-. "<div>2. Consume la lectura de su<br />suscripción</div><div style='font-size: 70%'>[MQTT]</div>" .->13
+    5-. "<div>3. Guarda el lote con ON<br />CONFLICT DO NOTHING</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->14
+    5-. "<div>4. Publica el acuse del lote</div><div style='font-size: 70%'>[MQTT]</div>" .->13
+    5-. "<div>5. Actualiza la última<br />lectura y encola evaluar() en<br />la cola alertas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->15
+    11-. "<div>6. Toma la tarea de la cola<br />alertas</div><div style='font-size: 70%'>[Redis protocol]</div>" .->15
+    11-. "<div>7. Registra la alerta del<br />distrito</div><div style='font-size: 70%'>[SQL/TCP]</div>" .->14
+    11-. "<div>8. Publica la alerta</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->17
+    17-. "<div>9. Notifica a los<br />suscriptores del canal</div><div style='font-size: 70%'></div>" .->1
   end

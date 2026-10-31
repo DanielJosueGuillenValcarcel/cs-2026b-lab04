@@ -53,3 +53,4 @@ El **Broker MQTT** (Mosquitto) y el protocolo entre el sensor, el broker y el pr
 ## 7. ¿Se cumple el escenario?
 - **QA-03: sí.** 0 lecturas perdidas en los dos experimentos reales y en el Monte Carlo.
 - **QA-01: sí.** Los reenvíos generados por el acuse no se duplican gracias a `ON CONFLICT DO NOTHING` (ADR-002; `test_backlog_sin_perdidas_ni_duplicados`).
+- Fitness functions: FF-07 (Monte Carlo), FF-08 (configuración del broker), FF-09 y FF-10 (Mosquitto real). Decisión registrada en el [ADR-007](../adr/007-cola-amplia-y-acuse-de-aplicacion.md).
