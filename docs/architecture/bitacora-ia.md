@@ -31,3 +31,22 @@ Redacta un ADR con la plantilla adjunta sobre el protocolo de ingesta de los sen
 
 ### Prompt 6 — Vista de despliegue
 Genera un script de Python con la librería diagrams (mingrammer) para la vista de despliegue: 40 sensores, broker MQTT Mosquitto, Nginx, Django con Gunicorn, proceso de ingesta, worker Celery, Redis, PostgreSQL, Prometheus y Grafana dentro de un VPS, y Telegram y OpenStreetMap como servicios externos. Usa Cluster y Edge(label=...). Usa solo clases que existan en la librería.
+
+---
+
+## Laboratorio 08 — Diseño de la arquitectura guiado por atributos de calidad
+
+Herramienta: Claude. La IA propuso escenarios, tácticas, código de simulación y hallazgos de evaluación. Cada propuesta se verificó con una simulación, un experimento real con Mosquitto 2.0.18 o una medición en PostgreSQL 16 antes de decidir.
+
+| # | Fecha | Prompt (resumen) | Qué propuso la IA | Qué verificamos o corregimos | Decisión |
+|---|---|---|---|---|---|
+| 1 | 30/10 | Prompt IA 1: escenarios de seis partes para 400 sensores | Escenarios candidatos para los cuatro atributos; calificó el mapa (QA-07) y la autenticación (QA-04) como (H,H) | La carga del mapa depende de los ciudadanos, no de los sensores; QA-04 ya está resuelto por ADR-003 | Corregida: QA-07 a (M,L) y QA-04 a (H,L) |
+| 2 | 30/10 | Prompt IA 2: tácticas para QA-02 | Microservicios con un clúster EMQX y escalar a 8 workers de Celery | Broker medido: 4700–5300 mensajes/s frente a 6,7/s. Simulación: con 8 workers el p95 es idéntico (61 s); el límite es el canal de Telegram | Rechazada |
+| 3 | 30/10 | Adaptar la simulación M/G/c del ejemplo al camino de la alerta | Modelo de colas de ingesta, worker y canal | Al reproducir el backlog con el código real apareció un error de dominio: `Alerta.extender` acortaba la vigencia con lecturas antiguas (8 lotes antiguos publicaron 4 alertas) | Corregida en el código, con prueba |
+| 4 | 30/10 | Prompt IA 2: tácticas para QA-03 | Mantener ADR-003 (QoS 1 y `persistence true`) como suficiente y, como refuerzo, guardar en disco en cada cambio | Experimento real: con la cola por defecto se perdieron 3000 de 4000 lecturas; guardar en cada cambio baja el rendimiento de 5318 a 1595 mensajes/s | Corregida: cola de 200 000, autosave de 60 s y acuse de aplicación |
+| 5 | 30/10 | Script del experimento con Mosquitto | Cliente de ingesta que asignaba `on_message` después de conectarse | Las primeras corridas "perdían" 1 a 3 lecturas: el broker las entregaba antes de que existiera el manejador y paho las confirmaba igual. Era un error del script, no del broker | Corregida: el manejador se asigna antes de conectar; 0 pérdidas en 5 corridas |
+| 6 | 30/10 | Prompt IA 3: evaluador ATAM escéptico | 3 sensibilidades, 3 trade-offs, 6 riesgos y la afirmación "Mosquitto no escala a 400 sensores" | Cada riesgo se verificó (ver [atam-lite.md](atam-lite.md)); R6 (reloj del sensor) era real y se mitigó en el código | Aceptada, salvo el falso positivo |
+| 7 | 30/10 | Pedir la evidencia de "Mosquitto no escala" | No pudo citar ninguna medición | Factor de ~700 entre la capacidad medida y la carga | **Falso positivo** refutado |
+| 8 | 30/10 | FF-08: prueba de la configuración del broker | Leer `max_queued_messages` del archivo y compararlo con 48 000 | Al borrar la línea para probar que la función falla, falló con un `KeyError` que no explicaba nada | Corregida: si falta la línea se usa el valor por defecto de Mosquitto (1000) y el mensaje dice "la cola no cubre 2 h de caída de la ingesta" |
+
+> No se incluyeron credenciales de los sensores, contraseñas de Mosquitto ni datos del VPS en los prompts. Las contraseñas de los experimentos son de prueba y se generan en un directorio temporal.
