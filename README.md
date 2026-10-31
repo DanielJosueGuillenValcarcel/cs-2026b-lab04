@@ -8,7 +8,7 @@ Construcción de Software · EPIS-UNSA · 2026-B
 | Mengoa Valeriano, Brigitte Noelia | Analista de drivers y matriz de decisión, verificadora de IA |
 
 ## Caso
-AireMisti IoT es una red de 40 sensores de calidad del aire (PM10 y PM2.5) instalados en Arequipa. Cada sensor envía una lectura por minuto; los ciudadanos consultan un mapa en tiempo real, el sistema emite una alerta pública cuando PM10 supera 150 µg/m³ y el analista municipal descarga el histórico.
+AireMisti IoT es una red de 40 sensores (400 desde el Lab 08) de calidad del aire (PM10 y PM2.5) instalados en Arequipa. Cada sensor envía una lectura por minuto; los ciudadanos consultan un mapa en tiempo real, el sistema emite una alerta pública cuando PM10 supera 150 µg/m³ y el analista municipal descarga el histórico.
 **Atributo de calidad crítico:** ingesta y fiabilidad. No se debe perder ninguna lectura ante cortes de red de hasta 2 horas, gracias al almacenamiento local en el sensor.
 
 ## Arquitectura elegida
@@ -64,6 +64,9 @@ flowchart TB
 - [ADR-002: Almacenamiento de lecturas en PostgreSQL particionado](docs/architecture/adr/002-almacenamiento-lecturas.md)
 - [ADR-003: Ingesta por MQTT con QoS 1 y credenciales por sensor](docs/architecture/adr/003-protocolo-ingesta.md)
 - [ADR-005: Patrones de diseño en el flujo de lecturas y alertas](docs/architecture/adr/005-patrones-de-diseno.md)
+- [ADR-006: Alertas solo de lecturas frescas y cola prioritaria](docs/architecture/adr/006-alertas-frescas-y-cola-prioritaria.md)
+- [ADR-007: Cola amplia en Mosquitto y acuse de aplicación](docs/architecture/adr/007-cola-amplia-y-acuse-de-aplicacion.md)
+- [ADR-008: Credenciales por sensor y ACL con patrón](docs/architecture/adr/008-credenciales-por-sensor-y-acl-con-patron.md)
 
 ## Diseño UML (Lab 05)
 Diseño detallado de la historia crítica [HU-03: ingesta de una lectura y emisión de alerta](docs/design/historia.md), coherente con el ADR-001.
@@ -119,23 +122,24 @@ graph LR
 
     1["<div style='font-weight: bold'>Ciudadano</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Vecino de Arequipa que<br />consulta la calidad del aire<br />y recibe alertas.</div>"]
     style 1 fill:#08427b,stroke:#052e56,color:#ffffff
-    15["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>40 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y guardan lecturas durante<br />los cortes.</div>"]
-    style 15 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    16["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
+    16["<div style='font-weight: bold'>Red de sensores PM10 / PM2.5</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>400 sensores con WiFi/4G y<br />microSD que miden cada minuto<br />y conservan toda lectura no<br />confirmada hasta recibir el<br />acuse. [QA-01]</div>"]
     style 16 fill:#999999,stroke:#6b6b6b,color:#ffffff
-    17["<div style='font-weight: bold'>OpenStreetMap</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Servicio de teselas del mapa<br />base.</div>"]
+    17["<div style='font-weight: bold'>Telegram Bot API</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Canal público donde se<br />publican las alertas.</div>"]
     style 17 fill:#999999,stroke:#6b6b6b,color:#ffffff
+    18["<div style='font-weight: bold'>OpenStreetMap</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Servicio de teselas del mapa<br />base.</div>"]
+    style 18 fill:#999999,stroke:#6b6b6b,color:#ffffff
     2["<div style='font-weight: bold'>Analista municipal</div><div style='font-size: 70%; margin-top: 0px'>[Person]</div><div style='font-size: 80%; margin-top:10px'>Registra sensores, revisa<br />alertas y descarga el<br />histórico.</div>"]
     style 2 fill:#08427b,stroke:#052e56,color:#ffffff
-    3["<div style='font-weight: bold'>AireMisti IoT</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de 40<br />sensores, publica el mapa de<br />calidad del aire y emite<br />alertas cuando PM10 supera<br />150 µg/m³.</div>"]
+    3["<div style='font-weight: bold'>AireMisti IoT</div><div style='font-size: 70%; margin-top: 0px'>[Software System]</div><div style='font-size: 80%; margin-top:10px'>Recibe las lecturas de 400<br />sensores, publica el mapa de<br />calidad del aire y emite<br />alertas cuando PM10 supera<br />150 µg/m³.</div>"]
     style 3 fill:#1168bd,stroke:#0b4884,color:#ffffff
 
     1-. "<div>Consulta el mapa de calidad<br />del aire</div><div style='font-size: 70%'></div>" .->3
     2-. "<div>Registra sensores, revisa<br />alertas y descarga el<br />histórico</div><div style='font-size: 70%'></div>" .->3
-    15-. "<div>Envía lecturas de PM10 y<br />PM2.5 cada minuto</div><div style='font-size: 70%'>[MQTT/TLS]</div>" .->3
-    3-. "<div>Publica alertas de<br />contaminación</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->16
-    3-. "<div>Obtiene las teselas del mapa</div><div style='font-size: 70%'>[HTTPS]</div>" .->17
-    16-. "<div>Notifica las alertas del<br />canal</div><div style='font-size: 70%'></div>" .->1
+    16-. "<div>Envía lecturas de PM10 y<br />PM2.5 cada minuto</div><div style='font-size: 70%'>[MQTT/TLS]</div>" .->3
+    3-. "<div>Publica alertas de<br />contaminación</div><div style='font-size: 70%'>[HTTPS/JSON]</div>" .->17
+    3-. "<div>Obtiene las teselas del mapa</div><div style='font-size: 70%'>[HTTPS]</div>" .->18
+    17-. "<div>Notifica las alertas del<br />canal</div><div style='font-size: 70%'></div>" .->1
+    3-. "<div>Entrega el acuse al sensor</div><div style='font-size: 70%'>[MQTT/TLS 8883]</div>" .->16
   end
 ```
 
@@ -227,6 +231,85 @@ El diagrama de clases del Lab 05 ([clases.puml](docs/design/clases.puml)) se act
 ### Integración continua (reto B)
 La Action [`pruebas.yml`](.github/workflows/pruebas.yml) ejecuta `pytest` en cada push y Pull Request y falla si
 algún método de `src/monitoreo` (sin contar la versión antes) llega a complejidad 11 o más (`radon cc --min C`).
+
+## Diseño de la arquitectura (Lab 08)
+
+[![fitness-functions](https://github.com/DanielJosueGuillenValcarcel/cs-2026b-lab04/actions/workflows/fitness.yml/badge.svg)](https://github.com/DanielJosueGuillenValcarcel/cs-2026b-lab04/actions/workflows/fitness.yml)
+
+**Escenario de crecimiento:** de 40 a 400 sensores, alertas públicas en menos de 1 minuto y cortes de red de hasta 2 h.
+Se rediseñó con ADD 3.0 en tres iteraciones, sin cambiar el estilo del ADR-001: la evidencia mostró que el monolito
+modular con Mosquitto soporta la carga (6,7 lecturas/s frente a 4700–5300 mensajes/s medidos en el broker).
+
+### Árbol de utilidad
+![Árbol de utilidad](docs/architecture/utilidad/arbol.png)
+
+Escenarios de seis partes y calificaciones corregidas: [utilidad/escenarios.md](docs/architecture/utilidad/escenarios.md).
+
+### Iteraciones de ADD
+| Iteración | Escenario | Tácticas | Evidencia | ¿Cumple? |
+|---|---|---|---|:---:|
+| [1](docs/architecture/add/iteracion-1.md) | QA-02: alerta en vivo ≤ 60 s (p95) durante la reconexión de 400 sensores; QA-05: backlog ≤ 5 min | Priorizar eventos (picos frescos a la cola `alertas`, picos del backlog a `historico`) y corregir la vigencia de la alerta | Simulación calibrada con PostgreSQL: p95 de 61 s → 1,0 s (peor corrida 95 s → 7 s); 8 workers no mejoran nada | Sí |
+| [2](docs/architecture/add/iteracion-2.md) | QA-03: 0 lecturas perdidas si cae la ingesta 10 min o el broker; QA-01 | Cola de 200 000 por cliente, autosave de 60 s y acuse de aplicación (`airemisti/<sensor>/ack`) | Mosquitto real: 3000 → 0 perdidas y 800 → 0 tras `kill -9`; Monte Carlo: 19 921 → 0 por mes | Sí |
+| [3](docs/architecture/add/iteracion-3.md) | QA-06: un sensor no publica en el tema de otro; QA-08: 50 altas sin reiniciar | Credenciales por sensor, ACL con patrón `%u` y recarga con SIGHUP | Mosquitto real: 0 suplantaciones; 50 altas en 0,7 s sin desconectar la ingesta | Sí |
+
+Decisiones: [ADR-006](docs/architecture/adr/006-alertas-frescas-y-cola-prioritaria.md),
+[ADR-007](docs/architecture/adr/007-cola-amplia-y-acuse-de-aplicacion.md) y
+[ADR-008](docs/architecture/adr/008-credenciales-por-sensor-y-acl-con-patron.md).
+La vista de contenedores ([workspace.dsl](docs/architecture/c4/workspace.dsl)) indica en cada elemento el escenario que atiende:
+
+![Contenedores](docs/architecture/c4/img/structurizr-Contenedores.png)
+
+### Fitness functions
+La Action [`fitness.yml`](.github/workflows/fitness.yml) corre en cada Pull Request y en `main`.
+
+| ID | Tipo | Qué verifica | Herramienta |
+|---|---|---|---|
+| FF-01 | Estructural | Módulos del monolito en capas y sin ciclos (ADR-001) | import-linter |
+| FF-02 | Estructural | El dominio no importa MQTT, Telegram ni los adaptadores (ADR-001, ADR-005) | import-linter |
+| FF-03 | Estructural | Los patrones del Lab 07 son independientes entre sí | import-linter |
+| FF-04 | Estructural | Nadie depende de la versión antes del refactor | import-linter |
+| FF-05 | Rendimiento | QA-02: peor p95 de 50 corridas ≤ 60 s | pytest + simulación |
+| FF-06 | Rendimiento | QA-05: backlog de 48 000 lecturas ≤ 5 min | pytest + simulación |
+| FF-07 | Fiabilidad | QA-01/QA-03: 0 lecturas perdidas por mes | pytest + Monte Carlo |
+| FF-08 | Configuración | `allow_anonymous false`, cola ≥ 48 000, ACL sin escrituras ajenas | pytest |
+| FF-09 | Disponibilidad | QA-03: 0 perdidas con la ingesta caída 10 min | pytest + Mosquitto real |
+| FF-10 | Disponibilidad | QA-03: el acuse recupera lo que pierde un `kill -9` del broker | pytest + Mosquitto real |
+| FF-11 | Seguridad | QA-04/QA-06: 0 suplantaciones; anónimos y claves incorrectas rechazados | pytest + Mosquitto real |
+| FF-12 | Modificabilidad | QA-08: 50 altas sin reiniciar el broker | pytest + Mosquitto real |
+
+Se comprobó que fallan cuando se viola la regla: [lint-imports con dos violaciones](docs/architecture/fitness/violacion-lint-imports.txt)
+y [FF-08 y FF-09 sin `max_queued_messages`](docs/architecture/fitness/violacion-calidad.txt).
+La Action `pruebas.yml` ahora exige complejidad ≤ 10 en todo `src/`; la deuda del Lab 05 (`procesar_lote`, C 13) quedó en B (8).
+
+```bash
+pip install import-linter pytest paho-mqtt
+PYTHONPATH=src lint-imports
+pytest -v tests/test_fitness.py          # FF-09 a FF-12 necesitan el ejecutable mosquitto
+```
+
+### Evaluación y bitácora
+- [ATAM-lite](docs/architecture/atam-lite.md): 3 puntos de sensibilidad, 3 trade-offs, 6 riesgos con su matriz, 2 no riesgos y 2 falsos positivos de la IA refutados.
+- [Bitácora de IA del Lab 08](docs/architecture/bitacora-ia.md#laboratorio-08--diseño-de-la-arquitectura-guiado-por-atributos-de-calidad).
+
+### Reto A: medición real
+Prototipo mínimo del camino crítico ([prototipo/medicion_real.py](prototipo/medicion_real.py)): Mosquitto 2.0.18 real, el
+`ConsumidorMqtt` y el `ServicioIngesta` de `src/` guardando en PostgreSQL 16, un worker de alertas con cola prioritaria
+y un canal que respeta el límite de Telegram (20 mensajes/min, simulado para no publicar en el canal real).
+Un generador propio con paho-mqtt reproduce la reconexión de 400 sensores con 8 distritos en vivo (más exigente que
+el escenario base, para tener más alertas que medir); 3 corridas de 150 s por política. Se usó un generador propio y
+no k6 ni Locust porque el camino crítico es MQTT, no HTTP.
+
+| Política | Alertas en vivo medidas | p50 medido | p95 medido | Máximo medido | p95 simulado (promedio / peor corrida) | Mensajes al canal (medido / simulado) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| Vigencia corregida | 14 | 12,2 s | 17,9 s | 18,0 s | 11,2 s / 22,2 s | 18,7 / 18,2 |
+| Frescura + cola prioritaria | 18 | 2,8 s | 9,3 s | 9,5 s | 8,1 s / 22,3 s | 13,3 / 12,8 |
+
+**Lectura:** el número de mensajes al canal coincide con la simulación con un error de 3 a 4 %, y las latencias tienen
+el mismo orden de magnitud y quedan muy por debajo de 60 s. Las diferencias se explican así: el p95 medido agrupa
+pocas alertas de 3 corridas (14 y 18), por eso queda cerca del máximo, mientras que la simulación promedia el p95 de
+200 corridas. La ingesta real es más rápida que los 6 ms supuestos. Y el generador real reparte las lecturas en vivo
+con otra semilla. La simulación resultó una buena aproximación, algo conservadora en el peor caso, y la política
+adoptada mantiene su ventaja en el sistema real.
 
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.
