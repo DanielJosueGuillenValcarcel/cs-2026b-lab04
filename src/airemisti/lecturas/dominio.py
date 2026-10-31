@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID
 
+from airemisti.alertas.dominio import VIGENCIA  # atajo "temporal" para calcular la vigencia
+
 PM_MAXIMO_FISICO = Decimal("1000")
 
 

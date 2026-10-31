@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from airemisti.alertas.adaptadores import TelegramAdapter  # atajo "temporal"
 from airemisti.alertas.dominio import Alerta, CanalAlertas, RepositorioAlertas
 from airemisti.compartido.parametros import UMBRAL_PM10
 from airemisti.lecturas.dominio import Lectura
