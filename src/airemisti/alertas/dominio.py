@@ -39,7 +39,7 @@ class Alerta:
     def extender(self, lectura: Lectura) -> None:
         self.lecturas.append(lectura)
         self.pm10_max = max(self.pm10_max, lectura.pm10)
-        self.vigente_hasta = lectura.medido_en + VIGENCIA
+        self.vigente_hasta = max(self.vigente_hasta, lectura.medido_en + VIGENCIA)
 
     def confirmar(self) -> None:
         if self.estado != EstadoAlerta.EMITIDA:

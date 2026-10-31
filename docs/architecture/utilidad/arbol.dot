@@ -1,0 +1,35 @@
+// Árbol de utilidad de AireMisti IoT para el crecimiento a 400 sensores (Lab 08, E1)
+// Hojas: escenario medible y (importancia para el negocio, dificultad técnica) con H, M o L.
+digraph arbol {
+  graph [rankdir=LR, fontname="Arial", nodesep=0.18, ranksep=0.45, bgcolor="white",
+         label="Árbol de utilidad — AireMisti IoT con 400 sensores (las hojas en rojo guían las iteraciones de ADD)", labelloc=t, fontsize=15];
+  node  [fontname="Arial", fontsize=10.5, shape=box, style="rounded,filled", fillcolor="#EEF2F8", color="#1A3A5C"];
+  edge  [color="#1A3A5C", arrowsize=0.6];
+
+  utilidad [label="Utilidad", shape=ellipse, fillcolor="#1A3A5C", fontcolor="white", fontsize=13];
+
+  rend [label="Rendimiento", fillcolor="#D6E4F0"];
+  fiab [label="Fiabilidad y\ndisponibilidad", fillcolor="#D6E4F0"];
+  segu [label="Seguridad", fillcolor="#D6E4F0"];
+  modi [label="Modificabilidad", fillcolor="#D6E4F0"];
+  utilidad -> {rend fiab segu modi};
+
+  r1 [label="Latencia de\nlas alertas"];   r2 [label="Capacidad de\nla ingesta"];   r3 [label="Consulta\ndel mapa"];
+  f1 [label="Cortes de red\nde los sensores"]; f2 [label="Caídas del\nservidor"];
+  s1 [label="Autenticidad"];  s2 [label="Aislamiento\nentre sensores"];
+  m1 [label="Altas de\nsensores"];   m2 [label="Marcas nuevas"];
+  rend -> {r1 r2 r3}; fiab -> {f1 f2}; segu -> {s1 s2}; modi -> {m1 m2};
+
+  node [shape=note, style=filled, fillcolor="white", fontsize=9.5, align=left];
+  qa02 [label="QA-02 (H,H) — Iteración 1\nUna lectura en vivo con PM10 > 150 µg/m³ llega mientras\n400 sensores reenvían su backlog → alerta en el canal\nen ≤ 60 s (p95)", fillcolor="#FADBD8", color="#C0392B"];
+  qa05 [label="QA-05 (H,M) — Iteración 1\n400 sensores reconectan a la vez tras 2 h de corte\n(48 000 lecturas) → backlog guardado en ≤ 5 min", fillcolor="#FDEBD0", color="#C0392B"];
+  qa07 [label="QA-07 (M,L)\n200 consultas/s al mapa en hora punta →\np95 ≤ 500 ms  (la IA propuso (H,H))"];
+  qa01 [label="QA-01 (H,M) — Iteración 2\nUn sensor pierde la red 2 h y reenvía 120 lecturas →\n0 perdidas y 0 duplicadas", fillcolor="#FDEBD0", color="#C0392B"];
+  qa03 [label="QA-03 (H,H) — Iteración 2\nLa ingesta cae 10 min o el broker muere con kill -9 →\n0 lecturas perdidas", fillcolor="#FADBD8", color="#C0392B"];
+  qa04 [label="QA-04 (H,L)\nUn dispositivo sin credenciales intenta publicar →\n100 % de conexiones rechazadas  (la IA propuso (H,H))"];
+  qa06 [label="QA-06 (H,M) — Iteración 3\nUn sensor con credenciales robadas publica en el\ntema de otro → 0 publicaciones aceptadas", fillcolor="#FDEBD0", color="#C0392B"];
+  qa08 [label="QA-08 (H,M) — Iteración 3\nEl analista da de alta 50 sensores → operativos en\n≤ 1 h, sin reiniciar el broker ni desplegar código", fillcolor="#FDEBD0", color="#C0392B"];
+  qa09 [label="QA-09 (M,L)\nSe compra una marca de sensor nueva → integrada en\n≤ 2 días modificando solo un adaptador (ADR-005)"];
+
+  r1 -> qa02; r2 -> qa05; r3 -> qa07; f1 -> qa01; f2 -> qa03; s1 -> qa04; s2 -> qa06; m1 -> qa08; m2 -> qa09;
+}

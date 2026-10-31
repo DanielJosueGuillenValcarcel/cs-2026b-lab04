@@ -7,7 +7,7 @@ from airemisti.alertas.dominio import CanalAlertas, RepositorioAlertas
 from airemisti.alertas.servicio import ServicioAlertas
 from airemisti.compartido.errores import TransicionInvalida
 from airemisti.ingesta.servicio import ServicioIngesta
-from airemisti.lecturas.dominio import RepositorioLecturas
+from airemisti.lecturas.dominio import Lectura, RepositorioLecturas
 from airemisti.sensores.dominio import EstadoSensor, RepositorioSensores, Sensor, Ubicacion
 
 
@@ -157,3 +157,43 @@ def test_transicion_no_modelada_se_rechaza():
     s.dar_de_alta()
     with pytest.raises(TransicionInvalida):
         s.dar_de_baja("sin pasar por mantenimiento")
+
+
+def test_pico_del_backlog_no_genera_alerta_publica():
+    sensor = Sensor("AQP-08", Ubicacion(Decimal("-16.40"), Decimal("-71.52"), "Yanahuara"))
+    sensor.dar_de_alta()
+    canal, historico = CanalFalso(), []
+    alertas = ServicioAlertas(AlertasMemoria(), canal)
+    ingesta = ServicioIngesta(SensoresMemoria(sensor), LecturasMemoria(), alertas.evaluar,
+                              encolar_historico=lambda l, d: historico.append((d, l.pm10)))
+    sensor.marcar_sin_senal()
+    ingesta.procesar_lote("AQP-08", [lectura(m, pm10=210 if m == 90 else 40) for m in range(120, 0, -1)])
+    assert canal.publicadas == []
+    assert historico == [("Yanahuara", Decimal("210"))]
+
+
+def test_backlog_antiguo_no_repite_la_alerta_en_vivo(entorno):
+    _, ingesta, _, canal = entorno
+    for minutos in range(9, 0, -1):
+        ingesta.procesar_lote("AQP-07", [lectura(minutos, pm10=180)])
+    ingesta.procesar_lote("AQP-07", [lectura(m, pm10=190) for m in range(100, 60, -5)])
+    ingesta.procesar_lote("AQP-07", [lectura(0, pm10=200)])
+    assert len(canal.publicadas) == 1
+
+
+
+
+def test_lectura_antigua_no_acorta_la_vigencia():
+    from uuid import uuid4
+    canal = CanalFalso()
+    alertas = ServicioAlertas(AlertasMemoria(), canal)
+    ahora = datetime.now(timezone.utc)
+    for minutos in range(100, 60, -5):
+        alertas.evaluar(Lectura(uuid4(), Decimal(180), Decimal(50), ahora - timedelta(minutes=minutos)), "Cayma")
+    assert len(canal.publicadas) == 1
+
+
+def test_lectura_en_vivo_con_reloj_atrasado_publica_la_alerta(entorno):
+    _, ingesta, _, canal = entorno
+    ingesta.procesar_lote("AQP-07", [lectura(25, pm10=180)])
+    assert len(canal.publicadas) == 1
