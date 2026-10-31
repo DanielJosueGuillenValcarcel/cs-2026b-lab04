@@ -1,0 +1,53 @@
+{
+  "mosquitto": "2.0.18",
+  "caida_ingesta_10min": {
+    "defecto": {
+      "enviadas": 4000,
+      "recibidas": 1000,
+      "perdidas": 3000
+    },
+    "infra": {
+      "enviadas": 4000,
+      "recibidas": 4000,
+      "perdidas": 0
+    }
+  },
+  "caida_broker": {
+    "autosave_60s": {
+      "enviadas": 800,
+      "recibidas": 0,
+      "perdidas": 800
+    },
+    "autosave_por_cambio": {
+      "enviadas": 800,
+      "recibidas": 800,
+      "perdidas": 0
+    },
+    "autosave_60s_con_acuse": {
+      "enviadas": 800,
+      "reenviadas": 800,
+      "guardadas": 800,
+      "perdidas": 0,
+      "sin_confirmar": 0
+    }
+  },
+  "rendimiento_msg_s": {
+    "4000_autosave_60s": 4705.655645523772,
+    "4000_por_cambio": 3812.184093179576,
+    "20000_autosave_60s": 5318.217673823013,
+    "20000_por_cambio": 1594.9573927870995
+  },
+  "acl": {
+    "propias_aceptadas": 1,
+    "suplantaciones_aceptadas": 0,
+    "anonimo_rechazado": true,
+    "clave_incorrecta_rechazada": true
+  },
+  "alta_50_sensores": {
+    "nuevos": 50,
+    "segundos_alta": 0.6982666670000981,
+    "conectados": 50,
+    "lecturas_recibidas": 50,
+    "ingesta_desconectada": false
+  }
+}

@@ -1,0 +1,10 @@
+# AireMisti IoT — lista de control de acceso de Mosquitto (ADR-008, QA-04 y QA-06)
+# Cada sensor se conecta con su código como usuario (por ejemplo AQP-0007) y solo puede
+# publicar sus lecturas y leer sus propios acuses. Agregar un sensor no exige editar este archivo.
+pattern write airemisti/%u/lecturas
+pattern read airemisti/%u/ack
+
+# El proceso de ingesta lee las lecturas de todos los sensores y publica los acuses.
+user ingesta
+topic read airemisti/+/lecturas
+topic write airemisti/+/ack
