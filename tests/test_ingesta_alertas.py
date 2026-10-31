@@ -191,3 +191,9 @@ def test_lectura_antigua_no_acorta_la_vigencia():
     for minutos in range(100, 60, -5):
         alertas.evaluar(Lectura(uuid4(), Decimal(180), Decimal(50), ahora - timedelta(minutes=minutos)), "Cayma")
     assert len(canal.publicadas) == 1
+
+
+def test_lectura_en_vivo_con_reloj_atrasado_publica_la_alerta(entorno):
+    _, ingesta, _, canal = entorno
+    ingesta.procesar_lote("AQP-07", [lectura(25, pm10=180)])
+    assert len(canal.publicadas) == 1

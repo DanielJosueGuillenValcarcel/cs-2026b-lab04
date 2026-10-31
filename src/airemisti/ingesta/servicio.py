@@ -50,7 +50,7 @@ class ServicioIngesta:
         if sensor.estado == EstadoSensor.SINCRONIZANDO:
             sensor.completar_sincronizacion()
         self.sensores.guardar(sensor)
-        self._encolar_picos(lote, sensor.ubicacion.distrito)
+        self._encolar_picos(lote, sensor.ubicacion.distrito, en_vivo=len(datos) == 1)
         return insertadas, hasta
 
     @staticmethod
@@ -59,10 +59,11 @@ class ServicioIngesta:
                         medido_en=datetime.fromisoformat(d["medido_en"])) for d in datos)
         return [l for l in lote if l.es_valida()]
 
-    def _encolar_picos(self, lote: list[Lectura], distrito: str) -> None:
+    def _encolar_picos(self, lote: list[Lectura], distrito: str, en_vivo: bool) -> None:
+        """Un mensaje de una sola lectura es en vivo aunque el reloj del sensor esté atrasado (R6)."""
         limite = self.reloj() - VENTANA_ALERTA_PUBLICA
         picos = [l for l in lote if l.supera_umbral(UMBRAL_PM10)]
-        frescas = [l for l in picos if l.medido_en >= limite]
+        frescas = [l for l in picos if en_vivo or l.medido_en >= limite]
         self._encolar(self.encolar_alerta, frescas, distrito)
         self._encolar(self.encolar_historico, [l for l in picos if l not in frescas], distrito)
 
