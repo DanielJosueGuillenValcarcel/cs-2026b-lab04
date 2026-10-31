@@ -1,0 +1,27 @@
+name: fitness-functions
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  arquitectura:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar Mosquitto (broker real para FF-09 a FF-12)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mosquitto
+          sudo systemctl stop mosquitto || true
+      - name: Instalar dependencias
+        run: pip install import-linter pytest paho-mqtt
+      - name: Fitness functions estructurales (FF-01 a FF-04)
+        run: PYTHONPATH=src lint-imports
+      - name: Fitness functions de calidad (FF-05 a FF-12)
+        run: pytest -v -rs tests/test_fitness.py

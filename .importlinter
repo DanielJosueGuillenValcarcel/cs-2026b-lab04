@@ -1,0 +1,55 @@
+[importlinter]
+root_packages =
+    airemisti
+    monitoreo
+include_external_packages = True
+
+[importlinter:contract:ff01-capas]
+name = FF-01 Módulos del monolito en capas y sin ciclos (ADR-001, paquetes.puml)
+type = layers
+layers =
+    airemisti.ingesta
+    airemisti.alertas
+    airemisti.lecturas | airemisti.sensores
+    airemisti.compartido
+
+[importlinter:contract:ff02-puertos]
+name = FF-02 El dominio no conoce MQTT, Telegram ni los adaptadores (ADR-001, ADR-005)
+type = forbidden
+source_modules =
+    airemisti.ingesta.servicio
+    airemisti.alertas.dominio
+    airemisti.alertas.servicio
+    airemisti.lecturas
+    airemisti.sensores
+    airemisti.compartido
+forbidden_modules =
+    airemisti.ingesta.consumidor
+    airemisti.alertas.adaptadores
+    paho
+    psycopg2
+    requests
+
+[importlinter:contract:ff03-patrones]
+name = FF-03 Los patrones del Lab 07 son independientes entre sí (ADR-005)
+type = independence
+modules =
+    monitoreo.sensores
+    monitoreo.indices
+    monitoreo.estados
+    monitoreo.eventos
+    monitoreo.ia
+
+[importlinter:contract:ff04-antes]
+name = FF-04 Nadie depende de la versión antes del refactor (ADR-005)
+type = forbidden
+source_modules =
+    monitoreo.servicio
+    monitoreo.sensores
+    monitoreo.indices
+    monitoreo.estados
+    monitoreo.eventos
+    monitoreo.ia
+    airemisti
+forbidden_modules =
+    monitoreo.antes
