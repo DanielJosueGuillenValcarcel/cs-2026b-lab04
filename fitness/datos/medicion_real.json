@@ -1,0 +1,108 @@
+{
+  "vigencia": {
+    "medido": {
+      "corridas": 3,
+      "alertas_en_vivo": 14,
+      "p50_s": 12.170011,
+      "p95_s": 17.890727,
+      "max_s": 18.023758,
+      "mensajes_telegram_promedio": 18.666666666666668
+    },
+    "corridas": [
+      {
+        "politica": "vigencia",
+        "semilla": 0,
+        "mensajes_telegram": 18,
+        "latencias_vivo_s": [
+          10.888168,
+          13.546417,
+          16.056784,
+          17.890727
+        ]
+      },
+      {
+        "politica": "vigencia",
+        "semilla": 1,
+        "mensajes_telegram": 18,
+        "latencias_vivo_s": [
+          4.762834,
+          5.900437,
+          7.6236,
+          12.261876
+        ]
+      },
+      {
+        "politica": "vigencia",
+        "semilla": 2,
+        "mensajes_telegram": 20,
+        "latencias_vivo_s": [
+          11.899369,
+          12.001114,
+          12.170011,
+          14.506425,
+          15.036351,
+          18.023758
+        ]
+      }
+    ],
+    "simulado": {
+      "p95_s_promedio": 11.24506673970471,
+      "p95_s_peor": 22.225415365357804
+    }
+  },
+  "adoptada": {
+    "medido": {
+      "corridas": 3,
+      "alertas_en_vivo": 18,
+      "p50_s": 2.810657,
+      "p95_s": 9.27143,
+      "max_s": 9.473833,
+      "mensajes_telegram_promedio": 13.333333333333334
+    },
+    "corridas": [
+      {
+        "politica": "adoptada",
+        "semilla": 0,
+        "mensajes_telegram": 15,
+        "latencias_vivo_s": [
+          2.471209,
+          5.129481,
+          7.6399,
+          9.473833
+        ]
+      },
+      {
+        "politica": "adoptada",
+        "semilla": 1,
+        "mensajes_telegram": 12,
+        "latencias_vivo_s": [
+          0.001892,
+          0.001924,
+          1.594728,
+          1.864354,
+          2.810657,
+          4.725179
+        ]
+      },
+      {
+        "politica": "adoptada",
+        "semilla": 2,
+        "mensajes_telegram": 13,
+        "latencias_vivo_s": [
+          0.002122,
+          0.002348,
+          2.609522,
+          3.268095,
+          6.104472,
+          6.140039,
+          9.127122,
+          9.27143
+        ]
+      }
+    ],
+    "simulado": {
+      "p95_s_promedio": 8.112936593688753,
+      "p95_s_peor": 22.283490313229407
+    }
+  }
+}
