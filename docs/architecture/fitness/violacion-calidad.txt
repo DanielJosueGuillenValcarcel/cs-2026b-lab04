@@ -1,0 +1,13 @@
+# Prueba de la fitness function de calidad: se borró la línea max_queued_messages de
+# infra/mosquitto/mosquitto.conf (Mosquitto vuelve a su valor por defecto de 1000) y se ejecutó:
+#   pytest -q tests/test_fitness.py -k "ff08 or ff09"
+
+E       AssertionError: la cola no cubre 2 h de caída de la ingesta
+E       assert 1000 >= (400 * 120)
+E       AssertionError: {'enviadas': 4000, 'recibidas': 1000, 'perdidas': 3000}
+E       assert 3000 == 0
+FAILED tests/test_fitness.py::test_ff08_configuracion_del_broker - AssertionError
+FAILED tests/test_fitness.py::test_ff09_cero_lecturas_perdidas_con_la_ingesta_caida_10_min
+2 failed, 6 deselected in 3.33s
+
+# Al restaurar la línea, las 8 fitness functions de calidad vuelven a pasar.

@@ -181,6 +181,27 @@ def test_backlog_antiguo_no_repite_la_alerta_en_vivo(entorno):
     assert len(canal.publicadas) == 1
 
 
+def test_consumidor_confirma_el_lote_guardado(entorno):
+    from airemisti.ingesta.consumidor import ConsumidorMqtt
+    import json
+    _, ingesta, lecturas, _ = entorno
+    acuses = []
+    consumidor = ConsumidorMqtt(ingesta, publicar=lambda tema, carga: acuses.append((tema, carga)))
+    lote = [lectura(m) for m in (3, 2, 1)]
+    consumidor.al_recibir_mensaje("airemisti/AQP-07/lecturas", json.dumps(lote).encode())
+    consumidor.al_recibir_mensaje("airemisti/AQP-07/lecturas", json.dumps(lote).encode())
+    assert acuses == [("airemisti/AQP-07/ack", lote[-1]["medido_en"])] * 2
+    assert len(lecturas.filas) == 3
+
+
+def test_consumidor_no_confirma_a_un_sensor_desconocido(entorno):
+    from airemisti.ingesta.consumidor import ConsumidorMqtt
+    import json
+    _, ingesta, _, _ = entorno
+    acuses = []
+    ConsumidorMqtt(ingesta, publicar=lambda t, c: acuses.append(t)).al_recibir_mensaje(
+        "airemisti/FALSO-01/lecturas", json.dumps([lectura(1)]).encode())
+    assert acuses == []
 
 
 def test_lectura_antigua_no_acorta_la_vigencia():

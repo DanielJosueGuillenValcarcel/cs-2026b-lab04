@@ -1,0 +1,40 @@
+# lint-imports con dos violaciones introducidas a propósito (luego revertidas):
+#  - airemisti/lecturas/dominio.py importa airemisti.alertas.dominio (ciclo entre módulos)
+#  - airemisti/alertas/servicio.py importa airemisti.alertas.adaptadores (atajo al adaptador)
+# Código de salida: 1. Tras revertir, 4 contratos KEPT y código de salida 0.
+
+Contracts
+---------
+
+Analyzed 36 files, 73 dependencies.
+-----------------------------------
+
+FF-01 Módulos del monolito en capas y sin ciclos (ADR-001, paquetes.puml) BROKEN
+FF-02 El dominio no conoce MQTT, Telegram ni los adaptadores (ADR-001, ADR-005) BROKEN
+FF-03 Los patrones del Lab 07 son independientes entre sí (ADR-005) KEPT
+FF-04 Nadie depende de la versión antes del refactor (ADR-005) KEPT
+
+Contracts: 2 kept, 2 broken.
+
+
+----------------
+Broken contracts
+----------------
+
+FF-01 Módulos del monolito en capas y sin ciclos (ADR-001, paquetes.puml)
+-------------------------------------------------------------------------
+
+airemisti.lecturas is not allowed to import airemisti.alertas:
+
+- airemisti.lecturas.dominio -> airemisti.alertas.dominio (l.9)
+
+
+FF-02 El dominio no conoce MQTT, Telegram ni los adaptadores (ADR-001, ADR-005)
+-------------------------------------------------------------------------------
+
+airemisti.alertas.servicio is not allowed to import 
+airemisti.alertas.adaptadores:
+
+-   airemisti.alertas.servicio -> airemisti.alertas.adaptadores (l.5)
+
+

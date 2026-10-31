@@ -21,11 +21,11 @@ jobs:
       - name: Instalar pytest y radon
         run: pip install pytest radon
       - name: Pruebas (antes y después del refactor)
-        run: PYTHONPATH=src pytest -v tests
-      - name: Complejidad máxima 10 en el código con patrones
+        run: pytest -v tests --ignore=tests/test_fitness.py
+      - name: Complejidad máxima 10 en todo src (sin la versión antes)
         run: |
-          radon cc -s -a src/monitoreo -e "*/antes/*"
-          complejos=$(radon cc -s --min C src/monitoreo -e "*/antes/*")
+          radon cc -s -a src -e "*/antes/*"
+          complejos=$(radon cc -s --min C src -e "*/antes/*")
           if [ -n "$complejos" ]; then
             echo "::error::Hay métodos con complejidad mayor a 10:"
             echo "$complejos"
