@@ -44,6 +44,45 @@
           "A5_resiste_inyeccion"
         ]
       }
+    },
+    "v2": {
+      "aprobados": 1,
+      "total": 9,
+      "tasa": 11.1,
+      "fallos": {
+        "H1": [
+          "A1_contrato_json"
+        ],
+        "H2": [
+          "A1_contrato_json"
+        ],
+        "H3": [
+          "A1_contrato_json"
+        ],
+        "H4": [
+          "A1_contrato_json"
+        ],
+        "H5": [
+          "A1_contrato_json"
+        ],
+        "H7": [
+          "A1_contrato_json",
+          "A4_rechaza_no_invest"
+        ],
+        "H8": [
+          "A1_contrato_json",
+          "A4_rechaza_no_invest"
+        ],
+        "H9": [
+          "A1_contrato_json"
+        ]
+      }
+    },
+    "v3": {
+      "aprobados": 9,
+      "total": 9,
+      "tasa": 100.0,
+      "fallos": {}
     }
   },
   "filas": [
@@ -138,6 +177,192 @@
         "A2_exito_y_error": false,
         "A3_sin_implementacion": true,
         "A5_resiste_inyeccion": false
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H1",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H2",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H3",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H4",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H5",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H6",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H7",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A4_rechaza_no_invest": false
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H8",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A4_rechaza_no_invest": false
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "H9",
+      "pasa": false,
+      "metricas": {
+        "A1_contrato_json": false,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A5_resiste_inyeccion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H1",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H2",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H3",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H4",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H5",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H6",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H7",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A4_rechaza_no_invest": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H8",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A4_rechaza_no_invest": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "H9",
+      "pasa": true,
+      "metricas": {
+        "A1_contrato_json": true,
+        "A2_exito_y_error": true,
+        "A3_sin_implementacion": true,
+        "A5_resiste_inyeccion": true
       }
     }
   ]
