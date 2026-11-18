@@ -1,0 +1,78 @@
+Aquí tienes criterios de aceptación en formato Dado / Cuando / Entonces. Asumo que cada lectura trae un identificador de sensor y una marca de tiempo generada por el propio sensor. Si en tu sistema no es así, avísame y ajusto los escenarios.
+
+**Historia:** Como analista municipal, quiero que las lecturas que un sensor guardó durante un corte de red se incorporen con su hora original y sin duplicados, para que los promedios diarios no tengan vacíos.
+
+---
+
+**CA1 – Se conserva la hora original**
+- **Dado** que el sensor S-01 guardó localmente una lectura tomada el 10/11 a las 14:05 durante un corte de red
+- **Cuando** se restablece la conexión y el sensor envía esa lectura el 10/11 a las 18:30
+- **Entonces** la lectura se registra con la hora 14:05 (la hora de medición) y no con 18:30 (la hora de recepción)
+- **Y** la hora de recepción se guarda en un campo aparte, para fines de auditoría
+
+**CA2 – Se incorporan todas las lecturas acumuladas**
+- **Dado** que S-01 acumuló 48 lecturas durante un corte de 4 horas
+- **Cuando** se restablece la conexión y el sensor envía su lote
+- **Entonces** las 48 lecturas quedan almacenadas
+- **Y** no queda ningún hueco en la serie de S-01 para ese intervalo
+
+**CA3 – No se duplican lecturas reenviadas**
+- **Dado** que la lectura de S-01 de las 14:05 ya está almacenada
+- **Cuando** el sensor vuelve a enviarla (por ejemplo, porque reintentó el envío del lote)
+- **Entonces** el sistema no crea un segundo registro
+- **Y** la cantidad de lecturas de S-01 para ese día no cambia
+
+**CA4 – Criterio de duplicado definido**
+- **Dado** que se recibe una lectura
+- **Cuando** ya existe otra con el mismo identificador de sensor y la misma marca de tiempo original (o el mismo número de secuencia, si el sensor lo envía)
+- **Entonces** se considera duplicada y se descarta
+- **Y** dos sensores distintos con la misma hora **no** se consideran duplicados
+
+**CA5 – Duplicado con valor distinto**
+- **Dado** que existe una lectura de S-01 a las 14:05 con valor 22.4
+- **Cuando** llega otra lectura de S-01 a las 14:05 con valor 23.1
+- **Entonces** el sistema conserva el primer valor y registra el conflicto en un log o alerta para revisión
+- **Y** ninguno de los dos valores se cuenta dos veces en el promedio
+
+**CA6 – Recálculo del promedio diario**
+- **Dado** que el promedio diario de S-01 del 10/11 ya se había calculado sin las lecturas del corte
+- **Cuando** esas lecturas se incorporan
+- **Entonces** el promedio del 10/11 se recalcula incluyendo las lecturas nuevas
+- **Y** el resultado es igual al que se habría obtenido si las lecturas hubieran llegado a tiempo
+
+**CA7 – Lecturas que llegan otro día**
+- **Dado** que el corte empezó el 10/11 a las 22:00 y la conexión volvió el 11/11 a las 09:00
+- **Cuando** se envían las lecturas acumuladas
+- **Entonces** cada lectura se asigna al día de su hora original (las de antes de medianoche al 10/11, las de después al 11/11)
+- **Y** se recalculan los promedios de ambos días
+
+**CA8 – Zona horaria consistente**
+- **Dado** que el sensor envía su hora en UTC (o con indicación de zona horaria)
+- **Cuando** se calcula el promedio diario
+- **Entonces** el corte de día se hace según la hora local del municipio, de modo que ninguna lectura cae en un día equivocado
+
+**CA9 – Envíos parciales o interrumpidos**
+- **Dado** que el envío del lote se corta a la mitad
+- **Cuando** el sensor vuelve a enviar el lote completo
+- **Entonces** las lecturas que ya habían llegado no se duplican y las que faltaban se incorporan
+
+**CA10 – Lecturas con hora inválida**
+- **Dado** que llega una lectura con una marca de tiempo futura o anterior a la instalación del sensor
+- **Cuando** el sistema la procesa
+- **Entonces** no se incluye en los promedios
+- **Y** queda registrada como rechazada, con el motivo
+
+**CA11 – Visibilidad para el analista**
+- **Dado** que se incorporaron lecturas atrasadas a un día ya calculado
+- **Cuando** el analista consulta ese día
+- **Entonces** puede ver que el promedio se actualizó y cuántas lecturas se agregaron de forma tardía
+
+---
+
+**Puntos que conviene aclarar con el equipo:**
+- **Retraso máximo aceptado:** ¿hay un límite de tiempo para aceptar lecturas atrasadas? Por ejemplo, ¿se incorpora una lectura que llega 30 días tarde, o se rechaza?
+- **Conflictos (CA5):** ¿se conserva el primer valor o el último? Lo dejé como "el primero", pero es una decisión de negocio.
+- **Promedios ya publicados:** si un promedio ya se exportó o se publicó en un reporte, ¿se puede modificar o hay que emitir una versión corregida?
+- **Reloj del sensor:** ¿qué pasa si el reloj está desfasado? Si el sensor no sincroniza la hora, "hora original" puede no ser confiable.
+
+Si quieres, los puedo convertir a escenarios Gherkin listos para usar con Cucumber/Behave, o reducirlos a una lista corta tipo checklist.

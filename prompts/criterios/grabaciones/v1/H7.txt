@@ -1,0 +1,51 @@
+Antes de escribir los criterios, conviene señalar un problema: tal como está, la historia no se puede verificar. "Rápida", "bonita" y "fácil de usar" son subjetivos, así que nadie podría decir con certeza si se cumplieron o no. Además, mezcla tres necesidades distintas (rendimiento, diseño visual y usabilidad) y no dice para qué quiere el ciudadano la aplicación ("para que...").
+
+Lo recomendable es dividirla en tres historias y convertir cada adjetivo en algo medible. A continuación propongo una versión. Los valores numéricos son supuestos razonables; ajústalos según el contexto real del proyecto o lo que acuerden con el Product Owner.
+
+---
+
+**H7.1 – Rendimiento**
+*Como ciudadano, quiero que la aplicación responda rápido para no perder tiempo al hacer mis trámites.*
+
+- CA1: La pantalla principal carga por completo en ≤ 3 segundos en una conexión 4G y en un dispositivo de gama media.
+- CA2: El 95 % de las acciones del usuario (buscar, enviar un formulario, cambiar de pantalla) responde en ≤ 2 segundos.
+- CA3: Si una operación tarda más de 1 segundo, se muestra un indicador de carga.
+- CA4: Con 500 usuarios concurrentes, los tiempos de CA1 y CA2 se siguen cumpliendo.
+
+Ejemplo en Gherkin:
+```
+Escenario: Carga de la pantalla principal
+  Dado que el ciudadano abre la aplicación desde un celular de gama media con conexión 4G
+  Cuando se carga la pantalla principal
+  Entonces todo el contenido se muestra en 3 segundos o menos
+```
+
+**H7.2 – Diseño visual**
+*Como ciudadano, quiero una interfaz visualmente clara y consistente para sentir confianza al usarla.*
+
+- CA1: Todas las pantallas respetan la guía de estilos aprobada (paleta de colores, tipografía, espaciados y componentes).
+- CA2: El contraste entre texto y fondo cumple WCAG 2.1 nivel AA (mínimo 4.5:1 para texto normal).
+- CA3: La interfaz se adapta correctamente (sin desplazamiento horizontal ni elementos cortados) a anchos de 360 px, 768 px y 1366 px.
+- CA4: El diseño final está validado contra los mockups aprobados por el cliente o el Product Owner.
+
+**H7.3 – Usabilidad**
+*Como ciudadano, quiero que la aplicación sea fácil de usar para completar mis trámites sin necesitar ayuda.*
+
+- CA1: Un usuario nuevo completa la tarea principal (por ejemplo, registrar una solicitud) en ≤ 3 minutos y sin ayuda externa.
+- CA2: En una prueba con al menos 5 usuarios, ≥ 80 % completa la tarea principal sin errores.
+- CA3: Cualquier función principal es accesible en un máximo de 3 clics o toques desde el inicio.
+- CA4: Los mensajes de error indican qué falló y cómo corregirlo (por ejemplo: "El DNI debe tener 8 dígitos", no "Error 400").
+- CA5: La puntuación SUS (System Usability Scale) obtenida en las pruebas con usuarios es ≥ 68.
+
+Ejemplo en Gherkin:
+```
+Escenario: Error en un formulario
+  Dado que el ciudadano está llenando el formulario de solicitud
+  Cuando ingresa un DNI con 7 dígitos y presiona "Enviar"
+  Entonces el sistema muestra junto al campo el mensaje "El DNI debe tener 8 dígitos"
+  Y conserva los demás datos que ya ingresó
+```
+
+---
+
+**Nota:** Aspectos como la velocidad o la accesibilidad también se pueden tratar como requisitos no funcionales o como parte de la *Definition of Done* para que apliquen a todas las historias, en lugar de manejarlos como una historia aparte. Si me dices de qué trata la aplicación (trámites municipales, reportes de incidencias, etc.), puedo ajustar los criterios a las tareas concretas que hace el ciudadano.

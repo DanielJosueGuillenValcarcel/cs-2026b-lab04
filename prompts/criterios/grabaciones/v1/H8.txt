@@ -1,0 +1,71 @@
+Antes de los criterios, una observación: a la historia le falta el **"para qué"**. Hoy describe la solución (Kafka, 3 particiones), pero no el beneficio. Si lo agregas, los criterios se pueden medir mejor. Por ejemplo:
+
+> Como desarrollador, quiero migrar la ingesta de Mosquitto a Kafka con 3 particiones **para poder escalar el consumo en paralelo y no perder mensajes si un consumidor se cae**.
+
+Asumo que la ingesta recibe mensajes de dispositivos o productores que hoy publican por MQTT en Mosquitto. Ajusta los nombres y los valores a tu caso.
+
+---
+
+## Criterios de aceptación
+
+**CA1 – Topic creado con la configuración correcta**
+- **Dado** que el clúster de Kafka está disponible
+- **Cuando** se despliega la infraestructura de ingesta
+- **Entonces** existe el topic de ingesta (p. ej. `ingesta.eventos`) con **3 particiones** y el factor de replicación acordado (p. ej. 3, o 1 en desarrollo), y esa configuración está versionada (script, IaC o docker-compose), no creada a mano.
+
+**CA2 – Los mensajes llegan a Kafka**
+- **Dado** un productor (dispositivo, servicio o bridge MQTT→Kafka) enviando un mensaje válido
+- **Cuando** se publica el mensaje
+- **Entonces** el mensaje queda en el topic de Kafka con el mismo contenido (payload y metadatos relevantes como timestamp e id de origen) que antes llegaba a Mosquitto.
+
+**CA3 – Distribución por clave y orden garantizado**
+- **Dado** que los mensajes se publican con una clave de partición (p. ej. `device_id`)
+- **Cuando** un mismo origen envía varios mensajes
+- **Entonces** todos sus mensajes caen en la misma partición y se consumen en el orden en que se enviaron.
+- **Y** con una carga de prueba de varios orígenes, las 3 particiones reciben mensajes (ninguna queda vacía ni concentra más del ~50 % del tráfico).
+
+**CA4 – Consumo en paralelo**
+- **Dado** un grupo de consumidores con 3 instancias
+- **Cuando** se procesa el topic
+- **Entonces** cada instancia recibe al menos una partición y no se procesan mensajes duplicados en condiciones normales.
+
+**CA5 – Sin pérdida de mensajes**
+- **Dado** que el productor usa `acks=all` (o la configuración de durabilidad acordada)
+- **Cuando** se envían N mensajes de prueba (p. ej. 10 000)
+- **Entonces** se consumen exactamente N mensajes, sin pérdidas.
+- **Y** si se reinicia un consumidor a mitad de la prueba, retoma desde el último offset confirmado sin perder mensajes.
+
+**CA6 – Rendimiento igual o mejor que con Mosquitto**
+- **Dado** el volumen de carga actual (o el pico esperado)
+- **Cuando** se ejecuta la prueba de carga
+- **Entonces** la latencia de extremo a extremo (p95) y el throughput son iguales o mejores que la línea base medida con Mosquitto (definir valores concretos, p. ej. p95 < 200 ms).
+
+**CA7 – Manejo de errores**
+- **Dado** un mensaje mal formado o que no se puede procesar
+- **Cuando** el consumidor lo recibe
+- **Entonces** se registra el error y el mensaje se envía a un topic de errores (DLQ), sin bloquear la partición.
+
+**CA8 – Migración sin pérdida de datos**
+- **Dado** que hay productores todavía conectados a Mosquitto
+- **Cuando** se hace el corte hacia Kafka
+- **Entonces** no se pierden mensajes durante la transición (p. ej. con un periodo en paralelo o un bridge MQTT→Kafka), y existe un plan de rollback documentado y probado.
+
+**CA9 – Retiro de Mosquitto**
+- **Dado** que toda la ingesta pasa por Kafka y se validó en el entorno acordado
+- **Cuando** se completa la migración
+- **Entonces** ningún componente depende de Mosquitto: se eliminan su servicio, su configuración y las librerías MQTT que ya no se usan del código, docker-compose y despliegue.
+
+**CA10 – Observabilidad y documentación**
+- **Entonces** se pueden monitorear al menos el lag por partición del grupo de consumidores y el número de mensajes por segundo.
+- **Y** el README o la documentación técnica explica cómo levantar Kafka en local, el nombre del topic, la clave de partición y cómo ejecutar las pruebas.
+
+---
+
+## Definición de terminado (sugerida)
+- Pruebas de integración (p. ej. con Testcontainers) para CA2, CA3 y CA5 pasando en el pipeline de CI.
+- Código revisado (code review) y desplegado en el entorno de pruebas.
+
+**Puntos para aclarar con el equipo:**
+1. ¿Por qué 3 particiones? Recuerda que el número de particiones limita cuántos consumidores pueden trabajar en paralelo dentro de un mismo grupo, y que aumentarlo después cambia la asignación de claves a particiones.
+2. Si los dispositivos solo hablan MQTT, ¿se reemplaza Mosquitto del todo o se mantiene un bridge (como Kafka Connect con un conector MQTT)? Esto cambia bastante el alcance de CA8 y CA9.
+3. Por su tamaño, quizá convenga dividir esta historia en dos: **(a)** ingesta en Kafka funcionando en paralelo y **(b)** corte y retiro de Mosquitto.

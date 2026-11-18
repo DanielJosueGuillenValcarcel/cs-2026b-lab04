@@ -1,0 +1,91 @@
+Aquí tienes los criterios de aceptación en formato Dado / Cuando / Entonces (Gherkin), agrupados por tema.
+
+**Historia:** Como ciudadano de Arequipa, quiero ver en un mapa el nivel de PM10 y PM2.5 que mide cada sensor, para decidir si salgo a hacer ejercicio al aire libre.
+
+---
+
+### 1. Visualización de sensores en el mapa
+
+**CA1 – Mapa con los sensores**
+- **Dado** que abro la vista del mapa
+- **Cuando** termina de cargar
+- **Entonces** veo el mapa centrado en Arequipa Metropolitana con un marcador por cada sensor activo, ubicado en sus coordenadas reales.
+
+**CA2 – Color según el nivel de calidad del aire**
+- **Dado** que un sensor tiene una medición reciente
+- **Cuando** se muestra en el mapa
+- **Entonces** su marcador tiene el color de la categoría que corresponde a su peor valor entre PM10 y PM2.5 (por ejemplo: verde = buena, amarillo = moderada, naranja = mala, rojo = muy mala).
+- **Y** hay una leyenda visible que explica cada color y su rango en µg/m³.
+
+**CA3 – Detalle de un sensor**
+- **Dado** que veo un sensor en el mapa
+- **Cuando** lo selecciono
+- **Entonces** veo: nombre o ubicación del sensor, valor de PM10 y de PM2.5 en µg/m³, la categoría de cada uno y la fecha y hora de la última medición.
+
+### 2. Ayuda para decidir si hacer ejercicio
+
+**CA4 – Recomendación de actividad**
+- **Dado** que abro el detalle de un sensor
+- **Cuando** se muestra su categoría
+- **Entonces** veo un mensaje corto sobre actividad física al aire libre, por ejemplo:
+  - Buena: "Condiciones adecuadas para hacer ejercicio al aire libre."
+  - Moderada: "Las personas sensibles (asma, problemas cardíacos, niños, adultos mayores) deberían reducir el esfuerzo intenso."
+  - Mala o peor: "No se recomienda hacer ejercicio al aire libre."
+
+**CA5 – Sensor más cercano**
+- **Dado** que di permiso de ubicación
+- **Cuando** abro el mapa
+- **Entonces** el mapa se centra en mi posición y resalta el sensor más cercano con su nivel y su recomendación.
+- **Dado** que no di permiso de ubicación
+- **Entonces** el mapa funciona igual, centrado en Arequipa, sin pedirme el permiso otra vez en cada visita.
+
+### 3. Actualidad y confiabilidad de los datos
+
+**CA6 – Datos actualizados**
+- **Dado** que tengo el mapa abierto
+- **Cuando** un sensor envía una nueva medición
+- **Entonces** el mapa la muestra en un plazo de máximo X minutos (por ejemplo, 15) sin que tenga que recargar la página.
+
+**CA7 – Datos desactualizados**
+- **Dado** que un sensor no envía datos desde hace más de X horas (por ejemplo, 2)
+- **Cuando** se muestra en el mapa
+- **Entonces** aparece en gris con el texto "Sin datos recientes" y la hora de la última medición.
+- **Y** no se muestra recomendación de ejercicio para ese sensor.
+
+**CA8 – Sensor sin uno de los contaminantes**
+- **Dado** que un sensor mide solo PM10 o solo PM2.5
+- **Cuando** abro su detalle
+- **Entonces** el contaminante que falta aparece como "No disponible", no como 0.
+- **Y** la categoría se calcula solo con el valor disponible.
+
+**CA9 – Fuente de datos no disponible**
+- **Dado** que el servicio de datos no responde
+- **Cuando** abro el mapa
+- **Entonces** veo un mensaje claro ("No se pudieron cargar las mediciones, intenta más tarde") en lugar de un mapa vacío o de valores incorrectos.
+
+### 4. Usabilidad
+
+**CA10 – Uso en celular**
+- **Dado** que entro desde un celular
+- **Cuando** uso el mapa
+- **Entonces** puedo hacer zoom, desplazarme y tocar los marcadores con facilidad, y el detalle se lee sin hacer zoom en el texto.
+
+**CA11 – Accesibilidad**
+- **Dado** que tengo dificultad para distinguir colores
+- **Cuando** veo un sensor
+- **Entonces** la categoría también aparece como texto (por ejemplo, "Moderada") y no solo como color.
+
+**CA12 – Rendimiento**
+- **Dado** que tengo una conexión móvil normal (4G)
+- **Cuando** abro el mapa
+- **Entonces** los sensores con sus niveles se muestran en menos de 3 segundos.
+
+---
+
+### Puntos para definir con el Product Owner
+- **Rangos de cada categoría:** recomiendo usar el INCA (Índice de Calidad del Aire del MINAM) o las guías de la OMS 2021 para que los colores tengan respaldo oficial. Conviene dejarlos configurables, no fijos en el código.
+- **Periodo del valor mostrado:** ¿medición instantánea, promedio de 1 hora o promedio de 24 horas? Los ECA y el INCA usan promedios, así que esto cambia la categoría.
+- **Valores concretos** de X minutos (actualización) y X horas (dato desactualizado).
+- **Alcance:** ¿solo sensores propios o también los de otras redes (OEFA, SENAMHI, sensores de bajo costo)?
+
+Si quieres, puedo convertir estos criterios en escenarios `.feature` listos para Cucumber o Behave, o dividir la historia en historias más pequeñas.
