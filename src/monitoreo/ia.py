@@ -89,12 +89,12 @@ class NoInventaPM10(Guardrail):
 
 
 class SinConsejosMedicos(Guardrail):
-    PALABRAS = ("diagnóstico", "medicamento", "tratamiento", "cura")
+    PALABRAS = re.compile(r"\b(diagnósticos?|medicamentos?|tratamientos?|curas?)\b", re.IGNORECASE)
 
     def validar(self, texto, alerta):
-        for palabra in self.PALABRAS:
-            if palabra in texto.lower():
-                raise GuardrailRechazo(f"Guardrail: consejo médico no permitido ('{palabra}')")
+        hallazgo = self.PALABRAS.search(texto)
+        if hallazgo:
+            raise GuardrailRechazo(f"Guardrail: consejo médico no permitido ('{hallazgo.group(0).lower()}')")
 
 
 class LongitudMaxima(Guardrail):
