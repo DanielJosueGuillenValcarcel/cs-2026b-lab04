@@ -311,6 +311,70 @@ pocas alertas de 3 corridas (14 y 18), por eso queda cerca del máximo, mientras
 con otra semilla. La simulación resultó una buena aproximación, algo conservadora en el peor caso, y la política
 adoptada mantiene su ventaja en el sistema real.
 
+## Prompt engineering (Lab 09)
+
+[![Evaluación de prompts](https://github.com/DanielJosueGuillenValcarcel/cs-2026b-lab04/actions/workflows/prompts.yml/badge.svg)](https://github.com/DanielJosueGuillenValcarcel/cs-2026b-lab04/actions/workflows/prompts.yml)
+
+Los prompts se tratan como código: cada versión está en [`prompts/`](prompts) con su contrato JSON Schema, un dataset
+de 9 casos (normales, de borde o no INVEST y un adversario), aserciones automáticas y las respuestas del modelo
+grabadas sin editar. Así la evaluación se repite sin clave de API. Las respuestas las dio una instancia nueva de
+Claude Opus 5.5 que solo recibió el prompt.
+
+| Tarea | Prompt | Contrato | Aserciones |
+|---|---|---|---|
+| A (común) | Criterios de aceptación en Gherkin a partir de una historia de usuario | [esquema](prompts/criterios/esquema.json) · [9 casos](prompts/criterios/casos.yaml) | A1 contrato JSON · A2 éxito y error/borde · A3 sin implementación · A4 rechaza no INVEST · A5 resiste inyección |
+| B (caso 3) | Explicar una alerta en lenguaje sencillo y clasificar su severidad | [esquema](prompts/alertas/esquema.json) · [9 casos](prompts/alertas/casos.yaml) | B1 contrato JSON y enum · B2 severidad según el D.S. 009-2003-SA · B3 no inventa valores de PM10 · B4 sin consejo médico · B5 resiste inyección |
+
+### Versiones y tasa de aprobación
+| Tarea | Versión | Qué cambió (y qué fallo ataca) | Aprobación |
+|---|---|---|:---:|
+| A | [v1](prompts/criterios/v1.txt) | Prompt de una línea | 0/9 (0 %) |
+| A | [v2](prompts/criterios/v2.txt) | Rol, contexto, formato JSON y "al menos un escenario de éxito y uno de error" (A1, A2) | 1/9 (11 %) |
+| A | [v3](prompts/criterios/v3.txt) | Evaluar INVEST primero, de 1 a 3 preguntas, de 2 a 4 escenarios, restricciones, `<historia>` como dato y un ejemplo (A1, A4) | **9/9 (100 %)** |
+| B | [v1](prompts/alertas/v1.txt) | El prompt de `ExplicadorAlertas` del Lab 07 | 0/9 (0 %) |
+| B | [v2](prompts/alertas/v2.txt) | Rol, todos los datos de la alerta y JSON con el enum de severidad (B1, B2) | 0/9 (0 %) |
+| B | [v3](prompts/alertas/v3.txt) | Tabla oficial de severidad, verificar el dato primero, 50 palabras y 3 precauciones como máximo, sin consejo médico, `<alerta>` como dato y un ejemplo (B1, B2, B4) | **9/9 (100 %)** |
+
+![Tasa de aprobación por versión](prompts/img/tasas-por-version.png)
+
+![Resultado de cada caso](prompts/img/casos-por-version.png)
+
+![Resumen de promptfoo: 27 evaluaciones de la tarea A](prompts/img/promptfoo-eval.png)
+
+### Seguridad, integración y CI
+- [Red teaming](prompts/seguridad/red-team.md): 8 ataques. El único que tuvo éxito fue un dato envenenado contra la v2; la v3 resistió los 8 y el código bloquea lo que pasaría si el modelo obedeciera.
+- Integración detrás del puerto `ProveedorLLM` del Lab 07: [`generador_criterios.py`](src/monitoreo/generador_criterios.py) y [`generador_explicacion.py`](src/monitoreo/generador_explicacion.py). Validan la entrada, renderizan la plantilla versionada, validan el esquema, recalculan la severidad y revisan el texto público. Se prueban con respuestas grabadas en [`test_generadores.py`](tests/test_generadores.py).
+- La Action [`prompts.yml`](.github/workflows/prompts.yml) corre promptfoo con el proveedor grabado en cada Pull Request y aplica una compuerta: versión vigente ≥ 85 %, sin regresiones y 100 % en los ataques.
+- [No determinismo](prompts/criterios/no-determinismo/analisis.md): 3 ejecuciones de la v3 sobre H1, H7 y H9 dieron 9 textos distintos (similitud de 0,33 a 0,80) con la misma decisión, y las 9 aprueban.
+
+![Defensa en capas](prompts/seguridad/img/defensa-capas.png)
+
+### Reto A: dos modelos con el mismo prompt (Tarea B v3)
+| Modelo | Aprobación | Latencia media (ms) | Latencia máx. (ms) | Tokens de salida (media) | Costo estimado por caso (USD) |
+|---|:---:|:---:|:---:|:---:|:---:|
+| Claude Opus 5.5 | 9/9 (100 %) | 7618 | 9231 | 132 | 0,0054 |
+| Claude Haiku 5.5 | 8/9 (89 %) | 7887 | 11 473 | 130 | 0,00014 |
+
+Haiku clasificó bien los 9 casos, pero en A2 respondió con texto y viñetas en lugar de JSON. La latencia es la
+duración de cada instancia, que incluye leer el prompt y guardar la respuesta, por lo que no representa la latencia de
+la API. El costo se estimó con 3,5 caracteres por token y los precios oficiales (USD 4/20 y 0,10/0,50 por millón de
+tokens de entrada/salida). Por unas 40 veces menos costo, Haiku obliga a confiar más en la validación del generador.
+Script: [`comparar.py`](prompts/reto/comparar.py).
+
+### Lecciones aprendidas
+- Cada cambio de prompt atacó un fallo medido. La v2 de la Tarea B no subió nada (0 → 0) pero reveló fallos nuevos: textos de más de 400 caracteres y un consejo sobre medicamentos.
+- El evaluador también se evalúa: 5 aserciones dieron falsos positivos, y uno de ellos ("pro**cura**") reveló un error real en el guardrail del Lab 07.
+- Un 100 % sobre 9 casos no prueba que el prompt sea bueno: el dataset debe crecer, sobre todo con casos adversarios y con varias muestras por caso.
+- La seguridad no puede depender de que el modelo se porte bien: validar que los números sean números detuvo el único ataque exitoso.
+
+```bash
+pip install pyyaml jsonschema
+python prompts/evaluar.py prompts/criterios/promptfooconfig.yaml      # mismo resultado sin Node
+cd prompts/criterios && npx promptfoo@0.118 eval --no-cache -o resultados.json -o resultados.html
+```
+
+Bitácora: [prompts/bitacora-ia.md](prompts/bitacora-ia.md).
+
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.
 Sin embargo, mostró un sesgo hacia tecnologías de moda: recomendó Kafka para 40 sensores, cuando un cálculo simple muestra apenas 0,67 lecturas por segundo.
