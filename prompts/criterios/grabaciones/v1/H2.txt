@@ -1,0 +1,66 @@
+Aquí tienes criterios de aceptación en formato Dado/Cuando/Entonces (Gherkin), cubriendo el caso feliz, los límites y algunos casos que suelen olvidarse:
+
+**Historia:** Como ciudadano suscrito al canal de alertas, quiero recibir un aviso cuando el PM10 de mi distrito supere 150 µg/m³, para proteger a mi familia de un pico de contaminación.
+
+---
+
+**CA1 – Envío del aviso al superar el umbral**
+- **Dado** que estoy suscrito al canal de alertas con el distrito "Cercado" registrado
+- **Cuando** la medición oficial de PM10 en "Cercado" registra 151 µg/m³
+- **Entonces** recibo un aviso en el canal al que estoy suscrito en un máximo de 10 minutos desde que se publica la medición
+
+**CA2 – Valor límite (no se envía en el umbral exacto)**
+- **Dado** que estoy suscrito con el distrito "Cercado"
+- **Cuando** el PM10 de "Cercado" registra exactamente 150 µg/m³
+- **Entonces** no recibo ningún aviso, porque la condición es *superar* 150 µg/m³
+
+**CA3 – Solo se avisa por mi distrito**
+- **Dado** que estoy suscrito con el distrito "Cercado"
+- **Cuando** el PM10 supera 150 µg/m³ en "Yanahuara" pero no en "Cercado"
+- **Entonces** no recibo ningún aviso
+
+**CA4 – Contenido del aviso**
+- **Dado** que se dispara una alerta para mi distrito
+- **Cuando** recibo el aviso
+- **Entonces** el aviso incluye: nombre del distrito, valor de PM10 medido (en µg/m³), fecha y hora de la medición, y al menos una recomendación de protección (por ejemplo, evitar actividad física al aire libre o mantener ventanas cerradas)
+
+**CA5 – No repetir avisos durante el mismo episodio**
+- **Dado** que ya recibí un aviso porque el PM10 de mi distrito superó 150 µg/m³
+- **Cuando** las siguientes mediciones siguen por encima de 150 µg/m³
+- **Entonces** no recibo avisos repetidos por cada medición mientras dure el mismo episodio
+
+**CA6 – Nuevo episodio tras normalizarse**
+- **Dado** que recibí un aviso y luego el PM10 de mi distrito bajó a 150 µg/m³ o menos
+- **Cuando** el PM10 vuelve a superar 150 µg/m³
+- **Entonces** recibo un nuevo aviso
+
+**CA7 – Aviso de fin del episodio** *(opcional, confirmar con el Product Owner)*
+- **Dado** que recibí un aviso de PM10 alto
+- **Cuando** el PM10 de mi distrito vuelve a 150 µg/m³ o menos
+- **Entonces** recibo un aviso indicando que el nivel volvió a estar por debajo del umbral
+
+**CA8 – Usuarios no suscritos o dados de baja**
+- **Dado** que cancelé mi suscripción al canal de alertas
+- **Cuando** el PM10 de mi antiguo distrito supera 150 µg/m³
+- **Entonces** no recibo ningún aviso
+
+**CA9 – Datos no disponibles o inválidos**
+- **Dado** que la estación de mi distrito no envía datos o envía un valor inválido (negativo, vacío o fuera de rango)
+- **Cuando** el sistema procesa esa lectura
+- **Entonces** no se envía ningún aviso basado en esa lectura y el incidente queda registrado para revisión
+
+**CA10 – Cambio de distrito**
+- **Dado** que actualizo mi distrito de "Cercado" a "Cayma" en mi suscripción
+- **Cuando** el PM10 supera 150 µg/m³ en "Cayma"
+- **Entonces** recibo el aviso, y ya no recibo avisos por "Cercado"
+
+---
+
+**Puntos que conviene aclarar con el equipo antes de cerrar la historia:**
+1. **¿Qué medición se usa?** ¿El valor instantáneo, el promedio horario o el promedio de 24 horas? El estándar de calidad del aire para PM10 suele expresarse como promedio de 24 h, así que esto cambia mucho cuándo se dispara la alerta.
+2. **Distritos con varias estaciones:** ¿se usa el máximo, el promedio o una estación de referencia?
+3. **Tiempo máximo de entrega:** puse 10 minutos como ejemplo; ajústalo al requisito real.
+4. **Canal:** ¿SMS, push, correo, WhatsApp? Si son varios, ¿el usuario elige uno o recibe por todos?
+5. **Horario:** ¿se envían avisos de madrugada o se respetan horas de silencio?
+
+Si me dices cómo resolvieron estos puntos, te ajusto los criterios para que queden cerrados y listos para convertirse en casos de prueba.

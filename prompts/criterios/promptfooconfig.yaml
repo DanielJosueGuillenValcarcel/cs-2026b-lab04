@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "AireMisti - Tarea A: criterios de aceptación en Gherkin (Lab 09)"
+
+prompts:
+  - id: file://v1.txt
+    label: v1
+  - id: file://v2.txt
+    label: v2
+  - id: file://v3.txt
+    label: v3
+
+providers:
+  - id: file://../proveedor_grabado.py
+    label: claude-grabado
+    config:
+      plantillas: criterios
+      grabaciones: criterios/grabaciones
+
+defaultTest:
+  assert:
+    - type: is-json
+      value: file://esquema.json
+      metric: A1_contrato_json
+    - type: python
+      value: file://asserts.py:a2_exito_y_error
+      metric: A2_exito_y_error
+    - type: python
+      value: file://asserts.py:a3_sin_implementacion
+      metric: A3_sin_implementacion
+
+tests: file://casos.yaml

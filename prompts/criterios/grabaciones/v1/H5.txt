@@ -1,0 +1,73 @@
+Aquí tienes los criterios de aceptación en formato Dado / Cuando / Entonces (Gherkin), que es fácil de convertir después en pruebas:
+
+**Historia de usuario**
+Como analista municipal, quiero recibir un aviso cuando un sensor deje de reportar durante más de 10 minutos, para enviar a un técnico a revisarlo.
+
+---
+
+**CA1 – Aviso al superar los 10 minutos sin reporte**
+- **Dado** un sensor activo cuyo último reporte se recibió a las 10:00:00
+- **Cuando** llegan las 10:10:01 y el sensor no ha enviado ningún reporte nuevo
+- **Entonces** el sistema genera un aviso de "sensor sin reportar" para ese sensor
+- **Y** el aviso le llega al analista municipal como máximo 1 minuto después de superarse el umbral
+
+**CA2 – Sin aviso dentro del umbral (caso límite)**
+- **Dado** un sensor activo cuyo último reporte se recibió a las 10:00:00
+- **Cuando** el sensor envía un nuevo reporte a las 10:09:59 (o justo a las 10:10:00)
+- **Entonces** no se genera ningún aviso
+- **Y** el contador de inactividad se reinicia desde ese último reporte
+
+**CA3 – Contenido del aviso**
+- **Dado** que se generó un aviso por inactividad
+- **Cuando** el analista lo abre
+- **Entonces** ve, como mínimo:
+  - el identificador y el nombre del sensor
+  - el tipo de sensor (por ejemplo: calidad del aire, tráfico, nivel de agua)
+  - la ubicación (dirección o coordenadas, y zona/distrito)
+  - la fecha y hora del último reporte recibido
+  - el tiempo transcurrido sin reportar
+
+**CA4 – Un solo aviso por incidente (sin duplicados)**
+- **Dado** un sensor que ya generó un aviso y sigue sin reportar
+- **Cuando** pasan más minutos sin que se recupere
+- **Entonces** el sistema no crea avisos nuevos para el mismo incidente
+- **Y** el aviso existente actualiza el tiempo transcurrido sin reportar
+
+**CA5 – Recuperación del sensor**
+- **Dado** un sensor con un aviso de inactividad abierto
+- **Cuando** el sensor vuelve a enviar un reporte válido
+- **Entonces** el aviso se marca como "Resuelto automáticamente", con la hora de recuperación
+- **Y** se le notifica al analista que el sensor volvió a reportar
+
+**CA6 – Sensores desactivados o en mantenimiento**
+- **Dado** un sensor marcado como "Inactivo" o "En mantenimiento programado"
+- **Cuando** deja de reportar durante más de 10 minutos
+- **Entonces** no se genera ningún aviso
+
+**CA7 – Varios sensores caídos a la vez**
+- **Dado** que varios sensores dejan de reportar en el mismo período
+- **Cuando** cada uno supera los 10 minutos sin reportar
+- **Entonces** se genera un aviso independiente por cada sensor
+- **Y** el analista puede ver todos los avisos abiertos en una lista, ordenados por tiempo de inactividad (de mayor a menor)
+
+**CA8 – Asignación de un técnico desde el aviso**
+- **Dado** un aviso de inactividad abierto
+- **Cuando** el analista selecciona "Asignar técnico" y elige a un técnico disponible
+- **Entonces** el aviso pasa al estado "Técnico asignado"
+- **Y** queda registrado qué técnico se asignó, quién lo asignó y a qué hora
+
+**CA9 – Historial de avisos**
+- **Dado** que se generaron y cerraron avisos de inactividad
+- **Cuando** el analista consulta el historial de un sensor
+- **Entonces** ve todos sus avisos anteriores, con hora de inicio, hora de fin, duración y estado final
+
+---
+
+**Supuestos y preguntas para aclarar con el Product Owner**
+1. **Canal del aviso:** ¿se muestra solo dentro del sistema (panel/dashboard) o también por correo, SMS o push? Lo asumí como notificación dentro del sistema.
+2. **"Reportar":** ¿cuenta cualquier mensaje del sensor (incluso un *heartbeat*) o solo lecturas válidas? Si un sensor envía datos corruptos, ¿se considera que está reportando?
+3. **Umbral configurable:** ¿los 10 minutos son fijos o deberían poder configurarse por tipo de sensor? Algunos sensores reportan cada 15 minutos por diseño y generarían falsos positivos.
+4. **Destinatarios:** ¿le llega el aviso a todos los analistas o solo al responsable de la zona del sensor?
+5. **Caída masiva:** si se caen muchos sensores al mismo tiempo (por ejemplo, por una falla de red o un corte de luz), ¿conviene agruparlos en un único aviso de "posible falla general" en lugar de enviar decenas de avisos?
+
+Si me confirmas estos puntos, ajusto los criterios. También puedo separar la asignación del técnico (CA8) en una historia aparte, ya que el objetivo principal de esta historia es *recibir el aviso*.

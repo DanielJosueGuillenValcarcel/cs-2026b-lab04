@@ -1,0 +1,76 @@
+Aquí tienes los criterios de aceptación en formato Given/When/Then (Dado/Cuando/Entonces). Algunos valores, como el rango máximo o el formato de fecha, son supuestos razonables: ajústalos a lo que defina tu equipo o el cliente.
+
+**Historia de usuario**
+Como analista municipal, quiero descargar en CSV el histórico de un sensor para un rango de fechas, para elaborar el informe mensual de calidad del aire.
+
+---
+
+**CA1 – Descarga exitosa**
+- **Dado** que soy un analista municipal autenticado y existe el sensor "S-014" con lecturas entre el 01/10/2026 y el 31/10/2026
+- **Cuando** selecciono el sensor "S-014", indico como fecha de inicio el 01/10/2026 y como fecha de fin el 31/10/2026, y pulso "Descargar CSV"
+- **Entonces** el sistema descarga un archivo `.csv` que contiene solo las lecturas de ese sensor dentro del rango, con ambas fechas incluidas.
+
+**CA2 – Estructura del archivo**
+- **Dado** que descargué el CSV de un sensor
+- **Cuando** abro el archivo
+- **Entonces**:
+  - la primera fila tiene encabezados: `sensor_id, fecha_hora, contaminante, valor, unidad, estado_lectura`
+  - las fechas usan formato ISO 8601 (`2026-10-01T00:00:00-05:00`) y llevan la zona horaria
+  - el separador es la coma, el decimal es el punto y la codificación es UTF-8
+  - las filas van ordenadas por `fecha_hora` de forma ascendente.
+
+**CA3 – Nombre del archivo**
+- **Dado** que descargo el histórico del sensor "S-014" del 01/10/2026 al 31/10/2026
+- **Cuando** se genera el archivo
+- **Entonces** se llama `S-014_2026-10-01_2026-10-31.csv`.
+
+**CA4 – Rango sin datos**
+- **Dado** que el sensor seleccionado no tiene lecturas en el rango elegido
+- **Cuando** pulso "Descargar CSV"
+- **Entonces** el sistema muestra el mensaje "No hay lecturas para el sensor y rango seleccionados" y no descarga ningún archivo (o descarga uno que solo tiene los encabezados, según lo que acuerde el equipo).
+
+**CA5 – Rango de fechas inválido**
+- **Dado** que estoy en el formulario de descarga
+- **Cuando** pongo una fecha de inicio posterior a la fecha de fin, o dejo alguna fecha vacía
+- **Entonces** el botón "Descargar CSV" queda deshabilitado o aparece el mensaje "La fecha de inicio debe ser anterior o igual a la fecha de fin", y no se hace la descarga.
+
+**CA6 – Fechas futuras**
+- **Dado** que estoy en el formulario de descarga
+- **Cuando** elijo una fecha de fin posterior a hoy
+- **Entonces** el sistema no lo permite, o bien limita el rango hasta la fecha actual y me lo avisa.
+
+**CA7 – Límite del rango**
+- **Dado** que el rango máximo permitido es de 366 días (valor por definir)
+- **Cuando** elijo un rango más largo
+- **Entonces** el sistema muestra "El rango máximo permitido es de 366 días" y no hace la descarga.
+
+**CA8 – Lecturas faltantes o inválidas**
+- **Dado** que el sensor tuvo periodos sin transmitir o lecturas marcadas como inválidas
+- **Cuando** descargo el CSV
+- **Entonces** esas lecturas aparecen con `estado_lectura` = `faltante` o `invalida` (y `valor` vacío si no hay dato), sin borrarse ni rellenarse en silencio, para que el informe pueda reportar la cobertura de datos.
+
+**CA9 – Control de acceso**
+- **Dado** que un usuario no ha iniciado sesión o no tiene el rol de analista
+- **Cuando** intenta acceder a la descarga, ya sea desde la interfaz o con la URL o el endpoint directo
+- **Entonces** el sistema niega el acceso (401/403) y no entrega datos.
+
+**CA10 – Rendimiento**
+- **Dado** que pido un rango de 31 días de un sensor con lecturas cada 15 minutos (unas 3 000 filas)
+- **Cuando** pulso "Descargar CSV"
+- **Entonces** la descarga comienza en menos de 5 segundos.
+
+**CA11 – Compatibilidad con hojas de cálculo**
+- **Dado** que descargué el CSV
+- **Cuando** lo abro en Excel o Google Sheets
+- **Entonces** las columnas se separan bien y las tildes y caracteres especiales (por ejemplo, "µg/m³") se ven correctamente.
+
+---
+
+**Supuestos y preguntas para validar con el cliente o Product Owner:**
+1. ¿Se descarga un solo sensor por vez o se necesitan varios en un mismo archivo?
+2. ¿El CSV debe tener las lecturas en bruto o promedios (por hora o por día)? Para un informe mensual de calidad del aire suelen pedirse promedios de 24 h.
+3. ¿Qué contaminantes o variables hay que incluir (PM2.5, PM10, NO₂, O₃, temperatura, etc.)?
+4. ¿Cuál es el rango máximo y la zona horaria oficial (por ejemplo, America/Lima)?
+5. ¿Se usa coma o punto y coma como separador? En algunas configuraciones regionales en español, Excel espera punto y coma.
+
+Si quieres, puedo pasar estos criterios a escenarios Gherkin (`.feature`) listos para automatizar, o derivar casos de prueba con particiones de equivalencia y valores límite para las fechas.

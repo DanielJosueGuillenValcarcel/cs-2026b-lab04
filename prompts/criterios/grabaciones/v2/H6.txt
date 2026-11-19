@@ -1,0 +1,42 @@
+{"historia_id": "H6", "invest_ok": true, "preguntas": [
+  "¿Cuál es la antigüedad máxima que puede tener una lectura almacenada en el sensor para que todavía se acepte (por ejemplo, 72 horas)?",
+  "¿Qué criterio define que dos lecturas son duplicadas: mismo sensor y misma marca de tiempo, o también deben coincidir los valores de PM10 y PM2.5?",
+  "¿Las lecturas recuperadas de un corte deben generar alertas públicas si superan el umbral, o solo se usan para el histórico y los promedios?"
+], "escenarios": [
+  {"titulo": "Incorporar lecturas almacenadas durante un corte de red con su hora original", "tipo": "exito", "dado": [
+    "el sensor \"AM-012\" estuvo sin conexión entre las 10:00 y las 12:00 del 15/11/2026 (hora de Lima)",
+    "el sensor guardó localmente 24 lecturas de PM10 y PM2.5 con su marca de tiempo original, una cada 5 minutos",
+    "el sistema no tiene lecturas de \"AM-012\" para ese intervalo"
+  ], "cuando": "el sensor recupera la conexión y envía el lote de 24 lecturas pendientes", "entonces": [
+    "el sistema registra las 24 lecturas con su marca de tiempo original y no con la hora de recepción",
+    "el histórico de \"AM-012\" del 15/11/2026 no presenta vacíos entre las 10:00 y las 12:00",
+    "el promedio diario de PM10 y PM2.5 del 15/11/2026 se recalcula incluyendo las lecturas recuperadas",
+    "el sistema confirma al sensor la recepción del lote para que libere su almacenamiento local"
+  ]},
+  {"titulo": "Descartar lecturas duplicadas al reenviar un lote", "tipo": "borde", "dado": [
+    "el sistema ya registró las lecturas de \"AM-012\" entre las 10:00 y las 11:00 del 15/11/2026",
+    "el sensor no recibió la confirmación y vuelve a enviar un lote que contiene esas mismas lecturas más las de 11:05 a 12:00"
+  ], "cuando": "el sistema procesa el lote reenviado", "entonces": [
+    "el sistema no crea registros nuevos para las lecturas con el mismo sensor y la misma marca de tiempo ya existentes",
+    "el sistema registra solo las lecturas nuevas de 11:05 a 12:00",
+    "el promedio diario del 15/11/2026 es igual al que se obtendría si cada lectura se hubiera recibido una sola vez",
+    "el sistema registra en la bitácora la cantidad de lecturas duplicadas descartadas"
+  ]},
+  {"titulo": "Asignar al día correcto las lecturas de un corte que cruza la medianoche", "tipo": "borde", "dado": [
+    "el sensor \"AM-007\" estuvo sin conexión desde las 23:30 del 15/11/2026 hasta las 00:45 del 16/11/2026 (hora de Lima)",
+    "el sensor guardó localmente las lecturas de todo ese intervalo"
+  ], "cuando": "el sensor recupera la conexión el 16/11/2026 y envía sus lecturas pendientes", "entonces": [
+    "las lecturas con marca de tiempo anterior a las 00:00 se incluyen en el promedio diario del 15/11/2026",
+    "las lecturas con marca de tiempo desde las 00:00 se incluyen en el promedio diario del 16/11/2026",
+    "el promedio diario del 15/11/2026, que ya estaba calculado, se actualiza con las lecturas recuperadas"
+  ]},
+  {"titulo": "Rechazar lecturas con marca de tiempo inválida", "tipo": "error", "dado": [
+    "el sensor \"AM-020\" envía un lote de lecturas pendientes tras un corte de red",
+    "el lote contiene 3 lecturas con marca de tiempo posterior a la hora actual del servidor o vacía"
+  ], "cuando": "el sistema valida el lote recibido", "entonces": [
+    "el sistema rechaza las 3 lecturas con marca de tiempo inválida y no las incluye en ningún promedio",
+    "el sistema registra las lecturas válidas del mismo lote con su hora original",
+    "el sistema registra en la bitácora el sensor, la cantidad y el motivo de las lecturas rechazadas",
+    "el analista municipal ve una advertencia de posible desajuste de reloj en el panel de administración de \"AM-020\""
+  ]}
+]}

@@ -1,0 +1,75 @@
+Aquí tienes los criterios de aceptación para la historia, en formato Dado / Cuando / Entonces:
+
+**Historia:** Como analista municipal, quiero registrar un sensor nuevo y ubicarlo en el mapa, para ampliar la cobertura de la red de monitoreo.
+
+---
+
+**CA1 – Registro exitoso de un sensor**
+- **Dado** que soy un analista municipal autenticado con permisos de gestión de sensores
+- **Cuando** completo los campos obligatorios (identificador único, tipo de sensor, variables que mide, fecha de instalación) y selecciono una ubicación en el mapa
+- **Entonces** el sistema guarda el sensor, muestra un mensaje de confirmación y el sensor aparece como un marcador en el mapa en la ubicación indicada.
+
+**CA2 – Ubicación mediante clic en el mapa**
+- **Dado** que estoy en el formulario de registro de sensor
+- **Cuando** hago clic en un punto del mapa
+- **Entonces** el sistema coloca un marcador provisional en ese punto y llena automáticamente los campos de latitud y longitud.
+
+**CA3 – Ubicación mediante coordenadas manuales**
+- **Dado** que estoy en el formulario de registro
+- **Cuando** ingreso latitud y longitud manualmente con un formato válido
+- **Entonces** el mapa se centra en esas coordenadas y muestra el marcador provisional en ese punto.
+
+**CA4 – Ajuste de la ubicación antes de guardar**
+- **Dado** que ya coloqué un marcador provisional
+- **Cuando** lo arrastro a otra posición
+- **Entonces** las coordenadas del formulario se actualizan para coincidir con la nueva posición.
+
+**CA5 – Campos obligatorios incompletos**
+- **Dado** que dejé vacío algún campo obligatorio o no seleccioné una ubicación
+- **Cuando** intento guardar
+- **Entonces** el sistema no registra el sensor y señala cada campo faltante con un mensaje claro.
+
+**CA6 – Coordenadas inválidas o fuera del municipio**
+- **Dado** que ingreso coordenadas con formato inválido o fuera del límite del municipio
+- **Cuando** intento guardar
+- **Entonces** el sistema muestra un mensaje indicando que la ubicación no es válida y no registra el sensor.
+
+**CA7 – Identificador duplicado**
+- **Dado** que ya existe un sensor con el identificador que ingresé
+- **Cuando** intento guardar
+- **Entonces** el sistema rechaza el registro e informa que el identificador ya está en uso.
+
+**CA8 – Aviso de sensor muy cercano a otro**
+- **Dado** que existe un sensor del mismo tipo a menos de una distancia mínima configurada (por ejemplo, 50 m) del punto elegido
+- **Cuando** intento guardar
+- **Entonces** el sistema muestra una advertencia con el sensor cercano y me permite confirmar o cambiar la ubicación (no bloquea el registro).
+
+**CA9 – Estado inicial del sensor**
+- **Dado** que registré un sensor correctamente
+- **Cuando** lo consulto en el mapa o en el listado
+- **Entonces** aparece con estado "Pendiente de activación" (o "Sin datos") hasta que envíe su primera lectura.
+
+**CA10 – Reflejo en la cobertura de la red**
+- **Dado** que el sensor fue registrado
+- **Cuando** consulto la vista de cobertura de la red de monitoreo
+- **Entonces** el nuevo sensor se incluye en el conteo total y en el área de cobertura mostrada.
+
+**CA11 – Control de permisos**
+- **Dado** que un usuario no tiene rol de analista municipal (o permisos equivalentes)
+- **Cuando** intenta acceder a la opción de registrar un sensor
+- **Entonces** el sistema no muestra la opción o le niega el acceso con un mensaje adecuado.
+
+**CA12 – Trazabilidad**
+- **Dado** que se registró un sensor
+- **Cuando** se revisa el historial del sensor
+- **Entonces** figuran el usuario que lo registró y la fecha y hora del registro.
+
+---
+
+**Supuestos que conviene validar con el Product Owner:**
+- Qué campos son realmente obligatorios (marca, modelo, número de serie, responsable, etc.).
+- Cuál es la distancia mínima entre sensores y si la advertencia debe bloquear o solo avisar.
+- Si el polígono del límite municipal ya está disponible en el sistema para validar ubicaciones.
+- Qué significa exactamente "cobertura" (radio por sensor, zonas, cantidad por distrito).
+
+Si quieres, puedo convertirlos en escenarios Gherkin listos para pruebas automatizadas o separar los que podrían ir en otra historia (por ejemplo, la vista de cobertura).
