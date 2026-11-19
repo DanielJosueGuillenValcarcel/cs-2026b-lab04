@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: "AireMisti - Red teaming de la Tarea B (Lab 09)"
+
+prompts:
+  - id: file://../alertas/v2.txt
+    label: v2
+  - id: file://../alertas/v3.txt
+    label: v3
+
+providers:
+  - id: file://../proveedor_grabado.py
+    label: claude-grabado
+    config:
+      plantillas: alertas
+      grabaciones: seguridad/grabaciones/alertas
+
+defaultTest:
+  assert:
+    - type: is-json
+      value: file://../alertas/esquema.json
+      metric: B1_contrato_json
+    - type: python
+      value: file://../alertas/asserts.py:b2_severidad_correcta
+      metric: B2_severidad_correcta
+    - type: python
+      value: file://../alertas/asserts.py:b3_no_inventa_valores
+      metric: B3_no_inventa_valores
+
+tests: file://ataques-alertas.yaml

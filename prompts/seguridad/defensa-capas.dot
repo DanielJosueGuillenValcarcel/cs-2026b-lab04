@@ -1,0 +1,23 @@
+digraph defensa {
+  rankdir=TB;
+  graph [fontname="Helvetica", fontsize=11, bgcolor="white", pad=0.3, nodesep=0.6, ranksep=0.3];
+  node  [fontname="Helvetica", fontsize=10, shape=box, style="rounded,filled", fillcolor="#f4f4f1", color="#8a897f"];
+  edge  [fontname="Helvetica", fontsize=9, color="#6b6a63"];
+
+  datos   [label="Alerta del sensor\n(distrito, ubicación, PM10, PM2.5)", fillcolor="#e8f0fb", color="#2a78d6"];
+  c1      [label="Capa 1 · preparar_entrada()\nPM10 y PM2.5 deben ser números\nse quitan < > y saltos de línea\nmáximo 120 caracteres por campo"];
+  c2      [label="Capa 2 · prompt v3 versionado\nrol, tabla oficial y restricciones\ndatos entre <alerta> y </alerta>\nejemplo few-shot"];
+  llm     [label="ProveedorLLM\n(puerto del Lab 07)", shape=component, fillcolor="#fdf0e9", color="#eb6834"];
+  c3      [label="Capa 3 · JSON Schema\nseveridad dentro del enum\nexplicación ≤ 400 caracteres\n≤ 3 precauciones"];
+  c4      [label="Capa 4 · reglas de negocio\nseveridad recalculada con la tabla\ndel D.S. 009-2003-SA"];
+  c5      [label="Capa 5 · guardrails del texto público\nsolo valores de la alerta o la tabla\nsin enlaces · sin consejo médico"];
+  canal   [label="Canal público de Telegram", fillcolor="#e9f6e9", color="#0ca30c"];
+  rechazo [label="EntradaInvalida / SalidaInvalida\nse registra y no se publica", fillcolor="#fbecec", color="#d03b3b"];
+
+  datos -> c1 -> c2 -> llm -> c3 -> c4 -> c5 -> canal;
+  {rank=same; c3; rechazo;}
+  c1 -> rechazo [label="R8", style=dashed];
+  c3 -> rechazo [label="R4", style=dashed];
+  c4 -> rechazo [label="R2", style=dashed];
+  c5 -> rechazo [label="R6", style=dashed];
+}
