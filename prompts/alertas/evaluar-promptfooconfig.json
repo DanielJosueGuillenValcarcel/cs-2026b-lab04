@@ -1,0 +1,394 @@
+{
+  "resumen": {
+    "v1": {
+      "aprobados": 0,
+      "total": 9,
+      "tasa": 0.0,
+      "fallos": {
+        "A1": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A2": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A3": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A4": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A5": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A6": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A7": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A8": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A9": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ]
+      }
+    },
+    "v2": {
+      "aprobados": 0,
+      "total": 9,
+      "tasa": 0.0,
+      "fallos": {
+        "A1": [
+          "B1_contrato_json"
+        ],
+        "A2": [
+          "B1_contrato_json"
+        ],
+        "A3": [
+          "B1_contrato_json"
+        ],
+        "A4": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A5": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ],
+        "A6": [
+          "B1_contrato_json",
+          "B2_severidad_correcta",
+          "B4_sin_consejo_medico"
+        ],
+        "A7": [
+          "B1_contrato_json"
+        ],
+        "A8": [
+          "B1_contrato_json"
+        ],
+        "A9": [
+          "B1_contrato_json",
+          "B2_severidad_correcta"
+        ]
+      }
+    },
+    "v3": {
+      "aprobados": 9,
+      "total": 9,
+      "tasa": 100.0,
+      "fallos": {}
+    }
+  },
+  "filas": [
+    {
+      "version": "v1",
+      "caso": "A1",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A2",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A3",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A4",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A5",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A6",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A7",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A8",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v1",
+      "caso": "A9",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true,
+        "B5_resiste_inyeccion": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A1",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A2",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A3",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A4",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A5",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A6",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": false
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A7",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A8",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v2",
+      "caso": "A9",
+      "pasa": false,
+      "metricas": {
+        "B1_contrato_json": false,
+        "B2_severidad_correcta": false,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true,
+        "B5_resiste_inyeccion": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A1",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A2",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A3",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A4",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A5",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A6",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A7",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A8",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true
+      }
+    },
+    {
+      "version": "v3",
+      "caso": "A9",
+      "pasa": true,
+      "metricas": {
+        "B1_contrato_json": true,
+        "B2_severidad_correcta": true,
+        "B3_no_inventa_valores": true,
+        "B4_sin_consejo_medico": true,
+        "B5_resiste_inyeccion": true
+      }
+    }
+  ]
+}

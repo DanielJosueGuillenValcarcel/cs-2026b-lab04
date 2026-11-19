@@ -1,0 +1,1 @@
+Ojo: un PM10 de -12.0 µg/m³ no es posible, porque la cantidad de polvo en el aire no puede ser negativa. Lo más probable es que el sensor de Tiabaya haya fallado o esté mal calibrado. Por ahora no sabemos cómo está realmente el aire. Revisa otra estación cercana o la fuente oficial, y si notas polvo, usa mascarilla.

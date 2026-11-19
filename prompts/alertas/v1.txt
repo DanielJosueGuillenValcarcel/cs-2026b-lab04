@@ -1,0 +1,1 @@
+Explica en lenguaje sencillo, en menos de 60 palabras, que en {{distrito}} el PM10 llegó a {{pm10}} µg/m³ y qué precauciones tomar.
