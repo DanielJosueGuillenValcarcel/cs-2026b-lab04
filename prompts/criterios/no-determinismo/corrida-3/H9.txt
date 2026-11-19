@@ -1,0 +1,4 @@
+{"historia_id": "H9", "invest_ok": true, "preguntas": [], "escenarios": [
+ {"titulo": "Filtrar el mapa por un distrito", "tipo": "exito", "dado": ["el mapa muestra 3 sensores en Cayma y 2 sensores en Socabaya"], "cuando": "selecciono el distrito \"Cayma\" en el filtro del mapa", "entonces": ["veo en el mapa solo los 3 sensores de Cayma", "no veo los sensores de Socabaya"]},
+ {"titulo": "Quitar el filtro de distrito", "tipo": "exito", "dado": ["el mapa está filtrado por el distrito \"Cayma\"", "existen 3 sensores en Cayma y 2 sensores en Socabaya"], "cuando": "quito el filtro de distrito", "entonces": ["veo nuevamente los 5 sensores en el mapa"]},
+ {"titulo": "Distrito sin sensores", "tipo": "borde", "dado": ["el distrito de Tiabaya no tiene sensores registrados"], "cuando": "selecciono el distrito \"Tiabaya\" en el filtro del mapa", "entonces": ["no veo ningún sensor en el mapa", "veo un mensaje que indica que no hay sensores en ese distrito"]}]}
