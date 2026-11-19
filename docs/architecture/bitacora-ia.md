@@ -50,3 +50,9 @@ Herramienta: Claude. La IA propuso escenarios, tácticas, código de simulación
 | 8 | 30/10 | FF-08: prueba de la configuración del broker | Leer `max_queued_messages` del archivo y compararlo con 48 000 | Al borrar la línea para probar que la función falla, falló con un `KeyError` que no explicaba nada | Corregida: si falta la línea se usa el valor por defecto de Mosquitto (1000) y el mensaje dice "la cola no cubre 2 h de caída de la ingesta" |
 
 > No se incluyeron credenciales de los sensores, contraseñas de Mosquitto ni datos del VPS en los prompts. Las contraseñas de los experimentos son de prueba y se generan en un directorio temporal.
+
+---
+
+## Laboratorio 09 — Prompts como código
+
+Herramientas: Claude como asistente y Claude Opus 5.5 y Claude Haiku 5.5 para las grabaciones. La bitácora completa, con 9 interacciones, está en [prompts/bitacora-ia.md](../../prompts/bitacora-ia.md). Allí se registran una sugerencia de la IA rechazada con evidencia (la función que verificaba el PM10: 10 falsos positivos y 1 falso negativo sobre las grabaciones reales) y los 5 falsos positivos de nuestras propias aserciones. Uno de ellos destapó un error real del guardrail del Lab 07.

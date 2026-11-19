@@ -1,0 +1,55 @@
+name: Evaluación de prompts
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+    paths:
+      - "prompts/**"
+      - ".github/workflows/prompts.yml"
+
+concurrency:
+  group: prompts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evaluar:
+    runs-on: ubuntu-latest
+    env:
+      PROMPTFOO_DISABLE_TELEMETRY: "1"
+      PROMPTFOO_DISABLE_UPDATE: "1"
+      PROMPTFOO_PYTHON: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias de las aserciones
+        run: pip install pyyaml jsonschema
+      - name: promptfoo con el proveedor grabado (todas las versiones)
+        env:
+          PROMPTFOO_FAILED_TEST_EXIT_CODE: "0"
+        run: |
+          mkdir -p reportes
+          for c in criterios/promptfooconfig alertas/promptfooconfig alertas/promptfooconfig-reto \
+                   seguridad/promptfooconfig-criterios seguridad/promptfooconfig-alertas; do
+            [ -f "prompts/$c.yaml" ] || continue
+            nombre=$(echo "$c" | tr / -)
+            npx -y promptfoo@0.118 eval -c "prompts/$c.yaml" --no-cache -o "reportes/$nombre.json" -o "reportes/$nombre.html"
+          done
+      - name: Compuerta de calidad (versión vigente >= 85 % y sin regresiones)
+        run: |
+          python prompts/evaluar.py prompts/criterios/promptfooconfig.yaml --compuerta v3 --minimo 85
+          python prompts/evaluar.py prompts/alertas/promptfooconfig.yaml --compuerta v3 --minimo 85
+          python prompts/evaluar.py prompts/seguridad/promptfooconfig-criterios.yaml --compuerta v3 --minimo 100
+          python prompts/evaluar.py prompts/seguridad/promptfooconfig-alertas.yaml --compuerta v3 --minimo 100
+      - name: Guardar los reportes de promptfoo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-promptfoo
+          path: reportes/
