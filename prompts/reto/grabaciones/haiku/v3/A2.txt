@@ -1,0 +1,8 @@
+Severidad: CUIDADO
+
+En Cerro Colorado, Av. Aviación cuadra 6, el aire tiene bastante polvo: el PM10 llegó a 268.4 µg/m³, por encima del límite de alerta de 250 µg/m³ pero sin llegar a 350. Respirarlo por varias horas puede irritar la garganta y los ojos.
+
+Precauciones:
+- Revisa la lectura más reciente de AireMisti antes de hacer ejercicio al aire libre en esa zona.
+- Mantén cerradas las ventanas de tu casa mientras el aire siga con polvo.
+- Si sientes tos, ardor en la garganta o dificultad para respirar, consulta a un médico.
