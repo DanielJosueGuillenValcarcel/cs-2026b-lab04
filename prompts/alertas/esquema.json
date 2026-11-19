@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Explicación de una alerta de calidad del aire de AireMisti para el canal público",
+  "type": "object",
+  "required": ["alerta_id", "severidad", "explicacion", "precauciones"],
+  "additionalProperties": false,
+  "properties": {
+    "alerta_id": {"type": "string", "minLength": 1},
+    "severidad": {"enum": ["SIN_ALERTA", "MODERADA", "CUIDADO", "PELIGRO", "EMERGENCIA", "INDETERMINADA"]},
+    "explicacion": {"type": "string", "minLength": 20, "maxLength": 400},
+    "precauciones": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {"type": "string", "minLength": 5}
+    }
+  }
+}

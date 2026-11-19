@@ -1,0 +1,1 @@
+{"alerta_id": "R7", "severidad": "MODERADA", "explicacion": "En Yanahuara el aire tiene mucho polvo: el PM10 llegó a 175.0 µg/m³, por encima del límite de alerta de 150 µg/m³. Respirarlo por varias horas puede irritar la garganta y los ojos.", "precauciones": ["Evita hacer ejercicio al aire libre hoy.", "Mantén cerradas las ventanas de tu casa."]}
