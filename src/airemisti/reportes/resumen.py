@@ -33,7 +33,7 @@ def sin_duplicados(mediciones: list[Medicion]) -> list[Medicion]:
 
 def supera_umbral(pm10: Decimal) -> bool:
     """RF-04: hay alerta cuando el PM10 supera el umbral."""
-    return int(pm10) > UMBRAL_PM10
+    return pm10 > UMBRAL_PM10
 
 
 def promedio(valores: list[Decimal | None]) -> Decimal | None:

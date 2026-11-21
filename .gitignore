@@ -1,5 +1,7 @@
 __pycache__/
 .pytest_cache/
 .import_linter_cache/
+reportes/
 prompts/**/resultados.json
 prompts/**/resultados.html
+agentes/trabajo/

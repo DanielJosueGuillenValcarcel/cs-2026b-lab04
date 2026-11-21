@@ -9,6 +9,7 @@ on:
       - "tests/**"
       - "prompts/**"
       - ".github/workflows/pruebas.yml"
+      - "agentes/**"
   pull_request:
 
 jobs:
@@ -23,6 +24,11 @@ jobs:
         run: pip install pytest radon jsonschema pyyaml
       - name: Pruebas (antes y después del refactor)
         run: pytest -v tests --ignore=tests/test_fitness.py
+      - name: Sistema agéntico (Lab 10)
+        working-directory: agentes
+        run: |
+          pytest -v pruebas_agente
+          python orquestador.py --issue 01 --modo unico
       - name: Complejidad máxima 10 en todo src (sin la versión antes)
         run: |
           radon cc -s -a src -e "*/antes/*"
