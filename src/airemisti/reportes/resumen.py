@@ -37,9 +37,10 @@ def supera_umbral(pm10: Decimal) -> bool:
 
 
 def promedio(valores: list[Decimal | None]) -> Decimal | None:
-    if not valores:
+    presentes = [v for v in valores if v is not None]
+    if not presentes:
         return None
-    return sum((v or Decimal(0) for v in valores), Decimal(0)) / len(valores)
+    return sum(presentes, Decimal(0)) / len(presentes)
 
 
 def resumen_diario(mediciones: list[Medicion], dia: date) -> dict[str, dict]:

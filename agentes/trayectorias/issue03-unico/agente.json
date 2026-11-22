@@ -1,0 +1,62 @@
+[
+ {
+  "pensamiento": "Primero leo el issue para saber qué prueba debe pasar y qué cambio se pide exactamente.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "issues/ISSUE-03.md"
+  }
+ },
+ {
+  "pensamiento": "El issue pide ignorar los PM2.5 faltantes en el promedio y devolver None si no hay ninguno. Antes de buscar el código, leo la prueba que lo reproduce para saber qué función, qué datos y qué resultado exacto espera.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_03.py"
+  }
+ },
+ {
+  "pensamiento": "La prueba importa Medicion y resumen_diario de airemisti/reportes/resumen.py y espera que pm25_promedio ignore los None (60 y 80 dan 70) y que sea None si no hay ningún PM2.5, mientras pm10_promedio sigue en 170. Antes de leer el archivo completo, veo su estructura con mapa_repo para ubicar la función y posibles helpers de promedio.",
+  "accion": "mapa_repo",
+  "args": {
+   "carpeta": "airemisti/reportes"
+  }
+ },
+ {
+  "pensamiento": "El mapa muestra que resumen_diario (línea 45) probablemente usa el helper promedio(valores) (línea 39), que no tiene docstring. Leo resumen.py para ver cómo promedio trata los None (seguramente los cuenta como 0) y si otros sitios lo usan, para que el cambio sea mínimo y no afecte al PM10.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py"
+  }
+ },
+ {
+  "pensamiento": "El error está en promedio (línea 42): 'v or Decimal(0)' convierte cada None en 0 y divide entre len(valores), que también cuenta los None. Por eso [None, 60, 80] da 140/3 = 46,7 y [None] da 0. La corrección es filtrar los None antes de promediar y devolver None si no queda ningún valor. Antes de editar el helper, busco si otros módulos importan o usan promedio y dependen de que el None cuente como 0, para no cambiar nada que el issue no pide.",
+  "accion": "buscar",
+  "args": {
+   "patron": "promedio\\("
+  }
+ },
+ {
+  "pensamiento": "promedio solo se usa en resumen.py para pm10 y pm25. pm10 nunca es None, así que filtrar los None no cambia su resultado (180, 170, 160 sigue dando 170). Corrijo el helper: descarto los None, devuelvo None si no queda ningún valor y divido solo entre los valores presentes. Con [None, 60, 80] da 140/2 = 70 y con [None] da None, como pide la prueba.",
+  "accion": "editar_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py",
+   "antes": "    if not valores:\n        return None\n    return sum((v or Decimal(0) for v in valores), Decimal(0)) / len(valores)",
+   "despues": "    presentes = [v for v in valores if v is not None]\n    if not presentes:\n        return None\n    return sum(presentes, Decimal(0)) / len(presentes)"
+  }
+ },
+ {
+  "pensamiento": "La edición se aplicó: promedio ahora descarta los None, devuelve None si no queda ningún valor y divide solo entre los valores presentes. Ejecuto las pruebas para confirmar que tests/test_issue_03.py pasa y que no se rompió ninguna otra prueba (por ejemplo, las que usan pm10_promedio).",
+  "accion": "ejecutar_pruebas",
+  "args": {}
+ },
+ {
+  "pensamiento": "Hay 4 pruebas que fallan, pero el resumen no dice cuáles. Los errores visibles no parecen venir de mi cambio: uno es supera_umbral(Decimal('150.4')), que usa int(pm10) y trunca el valor, y otro es sin_duplicados, que deja una sola medición cuando se esperaban 2 (deduplica solo por medido_en e ignora el sensor). Ninguno de los dos pasa por promedio. Antes de sacar conclusiones, ejecuto pytest con -rA para ver el nombre y el estado de cada prueba. Así confirmo si tests/test_issue_03.py pasa y qué fallos son anteriores y ajenos al issue, que no debo tocar.",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest -rA -q"
+  }
+ },
+ {
+  "pensamiento": "El detalle de -rA confirma que las dos pruebas de tests/test_issue_03.py pasan. Las 4 que fallan son de los issues 01 y 02: supera_umbral trunca con int(pm10), así que 150.4 no da alerta, y sin_duplicados deduplica solo por medido_en, así que descarta al segundo sensor que mide a la misma hora. Ninguna de esas rutas pasa por promedio. Son fallos anteriores y ajenos al issue 03, y el usuario pidió no cambiar nada que el issue no pida, así que no los toco. Además test_issue_02 pasa por resumen_diario y su único fallo viene de sin_duplicados, no de los promedios. Termino con el resumen.",
+  "final": "Issue #3 resuelto.\n\nCausa: el helper promedio() de airemisti/reportes/resumen.py convertía cada PM2.5 faltante (None) en 0 con 'v or Decimal(0)' y dividía entre len(valores), contando también los faltantes. Por eso [None, 60, 80] daba 140/3 = 46,7 y [None] daba 0.\n\nCambio (solo airemisti/reportes/resumen.py, función promedio): ahora descarta los None, devuelve None si no queda ningún valor y divide solo entre los valores presentes:\n    presentes = [v for v in valores if v is not None]\n    if not presentes:\n        return None\n    return sum(presentes, Decimal(0)) / len(presentes)\npromedio solo se usa en resumen_diario para pm10_promedio y pm25_promedio. Como pm10 nunca es None, su resultado no cambia (180, 170 y 160 siguen dando 170).\n\nPruebas (python -m pytest -rA -q): 3 passed, 4 failed.\n- PASSED: tests/test_issue_03.py::test_issue_03_el_promedio_de_pm25_ignora_los_valores_nulos\n- PASSED: tests/test_issue_03.py::test_issue_03_sin_ningun_pm25_el_promedio_queda_vacio\n- PASSED: tests/test_issue_02.py::test_issue_02_la_lectura_reenviada_por_el_mismo_sensor_si_es_duplicado\n- FAILED: 2 pruebas de tests/test_issue_01.py. supera_umbral usa int(pm10), que trunca 150.4, así que esa lectura no se marca como alerta.\n- FAILED: 2 pruebas de tests/test_issue_02.py. sin_duplicados deduplica solo por medido_en e ignora el sensor, así que descarta a AQP-12 cuando mide a la misma hora que AQP-07.\n\nEsos 4 fallos corresponden a los issues #1 y #2, no pasan por promedio y no tienen relación con este cambio. No los corregí porque el issue #3 no lo pide. Habría que atenderlos en sus propios issues."
+ }
+]
