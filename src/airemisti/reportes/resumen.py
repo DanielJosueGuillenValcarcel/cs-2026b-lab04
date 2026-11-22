@@ -24,9 +24,10 @@ def sin_duplicados(mediciones: list[Medicion]) -> list[Medicion]:
     """Quita las mediciones repetidas que reenvía un sensor al reconectarse."""
     vistas, unicas = set(), []
     for m in sorted(mediciones, key=lambda m: (m.medido_en, m.sensor)):
-        if m.medido_en in vistas:
+        clave = (m.sensor, m.medido_en)
+        if clave in vistas:
             continue
-        vistas.add(m.medido_en)
+        vistas.add(clave)
         unicas.append(m)
     return unicas
 
@@ -37,9 +38,10 @@ def supera_umbral(pm10: Decimal) -> bool:
 
 
 def promedio(valores: list[Decimal | None]) -> Decimal | None:
-    if not valores:
+    presentes = [v for v in valores if v is not None]
+    if not presentes:
         return None
-    return sum((v or Decimal(0) for v in valores), Decimal(0)) / len(valores)
+    return sum(presentes, Decimal(0)) / len(presentes)
 
 
 def resumen_diario(mediciones: list[Medicion], dia: date) -> dict[str, dict]:

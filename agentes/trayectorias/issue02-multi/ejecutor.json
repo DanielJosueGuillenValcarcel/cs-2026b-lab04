@@ -1,0 +1,57 @@
+[
+ {
+  "pensamiento": "Paso 1 del plan: primero leo la prueba del issue para ver qué función o módulo prueba y qué espera (AQP-07 y AQP-12 a las 10:00, y el reenvío de AQP-07 contado una sola vez). Después la ejecuto para confirmar que falla.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "La prueba importa Medicion, resumen_diario y sin_duplicados de airemisti.reportes.resumen. Espera que dos sensores distintos a la misma hora no sean duplicados, que el reenvío del mismo sensor a la misma hora sí lo sea, y que el resumen de 12/11/2026 incluya a AQP-07 y AQP-12. Sigo con el paso 1: ejecuto la prueba para confirmar que falla y ver el mensaje de error antes de buscar dónde se arma la clave.",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "Confirmado: fallan 2 de 3. sin_duplicados devuelve solo AQP-07 cuando AQP-12 mide a la misma hora, y resumen_diario pierde a AQP-12. Así que la clave de unicidad está armada solo con medido_en, y el resumen también indexa por hora o reutiliza esa deduplicación. La prueba del reenvío del mismo sensor ya pasa y debe seguir pasando. Sigo con el paso 1: busco en el código todos los lugares donde se deduplica o se indexa por hora (medido_en en claves de dict/set, UNIQUE u ON CONFLICT en el esquema), para corregirlos todos y no solo resumen.py.",
+  "accion": "buscar",
+  "args": {
+   "patron": "def sin_duplicados|def resumen_diario|duplic|medido_en\\]|\\[.*medido_en|\\.medido_en\\s*(in|not in)|UNIQUE|ON CONFLICT|set\\(\\)|= \\{\\}"
+  }
+ },
+ {
+  "pensamiento": "La búsqueda ubica el problema en airemisti/reportes/resumen.py: sin_duplicados (línea 23) usa un set 'vistas' y compara solo m.medido_en (línea 27), así que la clave de unicidad es solo la hora. resumen_diario (línea 45) agrupa en por_sensor recorriendo sin_duplicados (línea 48), por eso pierde a AQP-12. No aparecen UNIQUE ni ON CONFLICT en los .py, así que no hay esquema de BD con esa clave; en ingesta/servicio.py solo se parsea y filtra medido_en, sin deduplicar. Antes de editar leo resumen.py completo para ver dónde se agrega a 'vistas' y si resumen_diario indexa por hora en otro punto.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py"
+  }
+ },
+ {
+  "pensamiento": "Paso 2 del plan. La causa está en sin_duplicados: el set 'vistas' guarda solo m.medido_en (líneas 27 y 29), así que la clave de unicidad es solo la hora y AQP-12 se descarta al coincidir con AQP-07 a las 10:00. resumen_diario no indexa por hora: agrupa en por_sensor por m.sensor y solo filtra por fecha, así que pierde lecturas únicamente porque recorre sin_duplicados; al corregir la clave el resumen del 12/11/2026 queda bien sin tocarlo (paso 3). No hay UNIQUE ni ON CONFLICT en el código, así que no hay esquema ni migración que cambiar. Cambio la clave a la tupla (m.sensor, m.medido_en) en la comprobación y en el add; el orden de sorted ya es determinista y no lo toco. Noto que promedio() cuenta un PM2.5 faltante como 0, pero el issue no lo pide y no lo cambio.",
+  "accion": "editar_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py",
+   "antes": "        if m.medido_en in vistas:\n            continue\n        vistas.add(m.medido_en)",
+   "despues": "        clave = (m.sensor, m.medido_en)\n        if clave in vistas:\n            continue\n        vistas.add(clave)"
+  }
+ },
+ {
+  "pensamiento": "Paso 4 del plan: la clave de unicidad en sin_duplicados ahora es la tupla (m.sensor, m.medido_en). resumen_diario no necesita cambios porque agrupa por sensor y solo perdía lecturas por la deduplicación. Ejecuto la prueba del issue para confirmar que pasan las 3: AQP-07 y AQP-12 a las 10:00 aparecen las dos, el reenvío de AQP-07 a la misma hora se cuenta una sola vez y el resumen del 12/11/2026 incluye a ambos sensores.",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "La prueba del issue ya pasa: 3 de 3 (AQP-07 y AQP-12 a las 10:00 aparecen las dos, el reenvío de AQP-07 se cuenta una sola vez y el resumen del 12/11/2026 incluye a ambos sensores). Sigo con el paso 4: ejecuto la suite completa para confirmar que el cambio de clave a (sensor, medido_en) no rompe otras pruebas y se cumple QA-01 (0 lecturas perdidas y 0 duplicadas).",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest"
+  }
+ },
+ {
+  "pensamiento": "La suite completa da 4 fallos y 3 aprobadas. Las 3 que pasan son las de tests/test_issue_02.py. Los 4 fallos están en tests/test_issue_01.py y tests/test_issue_03.py y no son regresiones de mi cambio. issue_01 falla porque supera_umbral hace int(pm10) y trunca 150.4 a 150, así que no supera el umbral (RF-04). issue_03 falla porque promedio() cuenta un PM2.5 None como 0 y devuelve Decimal(0) en vez de None, cosa que ya había notado al leer resumen.py. En esas pruebas cada lectura tiene una hora distinta para el mismo sensor, así que la deduplicación da lo mismo con la clave vieja que con la nueva. Esos defectos corresponden a otros issues (01 y 03) y el issue 02 no pide corregirlos, así que no los toco. Termino e informo con honestidad: la suite completa no está en verde, pero por fallos ajenos a este cambio.",
+  "final": "Resumen del cambio (ISSUE-02 / RF-02):\n\nArchivo modificado: airemisti/reportes/resumen.py (solo la función sin_duplicados).\n- Antes la clave de unicidad era solo la hora (m.medido_en). Por eso, si dos sensores medían a la misma hora, el segundo se descartaba como duplicado. Así se perdía AQP-12 cuando coincidía con AQP-07 a las 10:00.\n- Nueva clave de unicidad: la tupla (sensor, medido_en). Se usa tanto en la comprobación como en vistas.add(clave). Ahora solo es duplicado el reenvío del mismo sensor a la misma hora.\n- resumen_diario no necesitó cambios: agrupa por sensor (por_sensor[m.sensor]) y solo filtra por fecha, sin indexar por hora. Perdía lecturas únicamente porque recorre sin_duplicados, así que con la clave corregida el resumen del 12/11/2026 incluye a los dos sensores.\n- No hay esquema de BD con UNIQUE ni ON CONFLICT en el código (la búsqueda no encontró ninguno), así que no hubo restricción ni migración que cambiar. ingesta/servicio.py no deduplica.\n- No se modificó ninguna prueba.\n\nResultado de las pruebas:\n- python -m pytest tests/test_issue_02.py: antes 2 fallidas y 1 aprobada; ahora 3 de 3 aprobadas. AQP-07 y AQP-12 a las 10:00 aparecen las dos, el reenvío de AQP-07 a la misma hora se cuenta una sola vez y el resumen del 12/11/2026 incluye a ambos sensores.\n- python -m pytest (suite completa): 3 aprobadas y 4 fallidas. Las 3 aprobadas son las del issue 02. Los 4 fallos son ajenos a este cambio y pertenecen a otros issues:\n  * tests/test_issue_01.py (2 fallos): supera_umbral hace int(pm10) y trunca 150.4 a 150, así que una lectura de 150.4 no cuenta como alerta (RF-04).\n  * tests/test_issue_03.py (2 fallos): promedio() cuenta el PM2.5 faltante (None) como 0, y sin ningún PM2.5 devuelve 0 en vez de None.\n  En esas pruebas cada lectura tiene una hora distinta, así que no dependen de la clave de deduplicación; no son regresiones del cambio. No los corregí porque el issue 02 no lo pide.\n\nQA-01: en el alcance del issue 02 se cumple (0 lecturas perdidas cuando dos sensores coinciden en la hora y 0 duplicadas en el reenvío del mismo sensor). La suite completa no queda en verde hasta resolver ISSUE-01 e ISSUE-03."
+ }
+]

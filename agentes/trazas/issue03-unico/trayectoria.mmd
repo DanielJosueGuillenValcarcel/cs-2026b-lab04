@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    actor U as Humano
+    participant AG as Agente ReAct
+    participant P as Política
+    participant H as Herramientas
+    U->>AG: objetivo
+    AG->>H: leer_archivo
+    H-->>AG: contenido de ISSUE-03.md
+    AG->>H: leer_archivo
+    H-->>AG: contenido de test_issue_03.py
+    AG->>H: mapa_repo
+    H-->>AG: mapa de 1 archivo(s)
+    AG->>H: leer_archivo
+    H-->>AG: contenido de resumen.py
+    AG->>H: buscar
+    H-->>AG: 3 coincidencia(s)
+    AG->>H: editar_archivo
+    H-->>AG: OK, archivo modificado
+    AG->>H: ejecutar_pruebas
+    H-->>AG: 4 failed, 3 passed in 0.03s
+    AG->>H: ejecutar_comando
+    H-->>AG: salida de pytest (recortada)
+    AG-->>U: Issue N.3 resuelto

@@ -1,6 +1,6 @@
 """Herramientas del agente. Cada una es una función pequeña, con descripción y parámetros explícitos.
 Todas operan DENTRO del directorio de trabajo (sandbox)."""
-import pathlib, subprocess, re
+import ast, pathlib, subprocess, re
 
 
 class Herramientas:
@@ -24,6 +24,10 @@ class Herramientas:
             "editar_archivo": "editar_archivo(ruta, antes, despues): reemplaza un fragmento exacto (una sola vez)",
             "ver_cambios": "ver_cambios(): muestra el diff respecto de la versión original",
             "ejecutar_comando": "ejecutar_comando(comando): ejecuta un comando de shell (sujeto a la política)",
+            "mapa_repo": "mapa_repo(carpeta='.'): por cada archivo .py, sus clases y funciones con parámetros y la "
+                         "primera línea del docstring; no muestra el cuerpo. Úsala antes de leer archivos completos",
+            "anotar": "anotar(texto): guarda una nota breve (hipótesis, archivo revisado) en notas.md; devuelve el número de notas",
+            "leer_notas": "leer_notas(): devuelve las notas guardadas en notas.md, o '(sin notas)'",
         }
 
     # --- herramientas ---
@@ -75,3 +79,39 @@ class Herramientas:
     def ejecutar_comando(self, comando):
         r = subprocess.run(comando, shell=True, cwd=self.raiz, capture_output=True, text=True, timeout=60)
         return (r.stdout + r.stderr).strip()[-2000:]
+
+    def mapa_repo(self, carpeta="."):
+        lineas = []
+        for p in sorted(self._ruta(carpeta).rglob("*.py")):
+            if "__pycache__" in p.parts:
+                continue
+            arbol = ast.parse(p.read_text(encoding="utf-8"))
+            firmas = []
+            for n in arbol.body:
+                if isinstance(n, (ast.FunctionDef, ast.ClassDef)):
+                    firmas.append(self._firma(n, ""))
+                if isinstance(n, ast.ClassDef):
+                    firmas += [self._firma(m, "    ") for m in n.body if isinstance(m, ast.FunctionDef)]
+            if firmas:
+                lineas.append(f"{p.relative_to(self.raiz).as_posix()}:")
+                lineas += firmas
+        return "\n".join(lineas) or "(sin archivos .py)"
+
+    @staticmethod
+    def _firma(nodo, sangria):
+        doc = (ast.get_docstring(nodo) or "").split("\n")[0]
+        if isinstance(nodo, ast.ClassDef):
+            cabecera = f"class {nodo.name}"
+        else:
+            cabecera = f"def {nodo.name}({', '.join(a.arg for a in nodo.args.args)}) [línea {nodo.lineno}]"
+        return f"  {sangria}{cabecera}" + (f"  # {doc}" if doc else "")
+
+    def anotar(self, texto):
+        notas = self.raiz / "notas.md"
+        previas = notas.read_text(encoding="utf-8").splitlines() if notas.exists() else []
+        notas.write_text("\n".join(previas + [f"- {str(texto).strip()}"]) + "\n", encoding="utf-8")
+        return f"OK: {len(previas) + 1} nota(s) en notas.md"
+
+    def leer_notas(self):
+        notas = self.raiz / "notas.md"
+        return notas.read_text(encoding="utf-8").strip() if notas.exists() else "(sin notas)"

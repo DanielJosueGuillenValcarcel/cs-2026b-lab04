@@ -1,0 +1,37 @@
+[
+ {
+  "pensamiento": "Primero reviso el diff real para confirmar que el cambio se limita a sin_duplicados en airemisti/reportes/resumen.py, que la clave pasa a ser (sensor, medido_en) y que el estilo es coherente con el módulo. Después leeré el issue, el archivo completo y las pruebas, y ejecutaré la suite.",
+  "accion": "ver_cambios",
+  "args": {}
+ },
+ {
+  "pensamiento": "El diff es mínimo y se limita a sin_duplicados: la clave pasa de m.medido_en a la tupla (m.sensor, m.medido_en) y se usa igual en la comprobación y en vistas.add. La variable local 'clave' evita repetir la tupla y se lee bien. Antes de opinar sobre la coherencia necesito ver el archivo completo: si el docstring o los comentarios de sin_duplicados todavía dicen que la unicidad es por hora, si hay otras funciones del módulo con su propia noción de duplicado y si resumen_diario de verdad agrupa por sensor sin indexar por hora, como afirma el ejecutor.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py"
+  }
+ },
+ {
+  "pensamiento": "El archivo completo confirma lo que dice el ejecutor: el cambio está solo en sin_duplicados, la clave (m.sensor, m.medido_en) se guarda en una variable local y se usa igual en la comprobación y en vistas.add, y el docstring ('Quita las mediciones repetidas que reenvía un sensor al reconectarse') ya describe la unicidad por sensor, así que ahora la implementación coincide con él y no hay que tocarlo. El orden de recorrido (medido_en, sensor) sigue siendo determinista y no afecta a la clave. resumen_diario agrupa con por_sensor.setdefault(m.sensor, ...) y solo filtra por fecha, sin indexar por hora, como afirmó el ejecutor. Ninguna otra función del módulo tiene su propia noción de duplicado. Los problemas que quedan en supera_umbral (int(pm10)) y promedio (None como 0) corresponden a ISSUE-01 e ISSUE-03 y no a este cambio. Ahora leo el issue para comprobar que el criterio de duplicado que pide RF-02 es exactamente el mismo sensor a la misma hora y que no exige nada más, como cambiar el esquema o el resumen.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "issues/ISSUE-02.md"
+  }
+ },
+ {
+  "pensamiento": "El issue confirma el criterio que implementa el cambio: solo es duplicado la lectura que el mismo sensor reenvía con la misma hora, y dos sensores distintos a la misma hora son dos lecturas. No pide tocar el esquema, la ingesta ni resumen_diario, así que un cambio limitado a la clave de sin_duplicados tiene el alcance justo. Ahora leo tests/test_issue_02.py para comprobar que las pruebas cubren los tres casos que describe el ejecutor (dos sensores a la misma hora, reenvío del mismo sensor y resumen del 12/11/2026) y que no fueron modificadas. Después ejecutaré la suite para verificar los resultados que reporta.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "Las pruebas de tests/test_issue_02.py cubren justo los tres casos que describe el ejecutor: dos sensores distintos a la misma hora (deben quedar 2), el reenvío del mismo sensor a la misma hora (debe quedar 1) y el resumen del 12/11/2026 con AQP-07 y AQP-12. Usan la API pública del módulo (Medicion, sin_duplicados, resumen_diario) y no dependen de detalles internos como el orden del recorrido, así que el cambio de clave no las obliga a cambiar. El diff solo toca airemisti/reportes/resumen.py, lo que concuerda con que no se modificó ninguna prueba. Falta verificar los resultados que reporta el ejecutor: que las 3 pruebas del issue 02 pasen y que los únicos fallos de la suite completa sean los 2 de test_issue_01 (int(pm10) en supera_umbral) y los 2 de test_issue_03 (None como 0 en promedio), sin regresiones nuevas.",
+  "accion": "ejecutar_pruebas",
+  "args": {}
+ },
+ {
+  "pensamiento": "La ejecución da 4 fallidas y 3 aprobadas, igual que lo que reporta el ejecutor. Los mensajes de error que se ven corresponden a otros issues: supera_umbral(Decimal('150.4')) devuelve False y 'assert 0 == 1' (lecturas en alerta) son de ISSUE-01 por el int(pm10). El promedio 46.67 frente a 70 es de ISSUE-03, porque cuenta el PM2.5 faltante como 0. Ninguno depende de la clave de deduplicación, así que no son regresiones. En diseño el cambio es mínimo (3 líneas en una sola función), legible gracias a la variable local 'clave' usada igual en la comprobación y en vistas.add, y coherente con el módulo: ahora la implementación coincide con el docstring, que ya hablaba del reenvío de un sensor, y resumen_diario no necesitaba cambios. Apruebo.",
+  "final": "APROBADO. El diff se limita a sin_duplicados en airemisti/reportes/resumen.py. La clave de unicidad pasa de m.medido_en a (m.sensor, m.medido_en), que es exactamente el criterio de ISSUE-02 / RF-02: solo es duplicado el reenvío del mismo sensor a la misma hora, y dos sensores distintos a la misma hora son dos lecturas. Diseño: el cambio es mínimo, de 3 líneas y en una sola función. La variable local 'clave' evita repetir la tupla y se usa igual en la comprobación y en vistas.add. La implementación ahora coincide con el docstring ('Quita las mediciones repetidas que reenvía un sensor al reconectarse'), que no hacía falta tocar. El orden de recorrido sigue siendo determinista. resumen_diario no necesitaba cambios porque agrupa por m.sensor y solo filtra por fecha. No se tocaron pruebas, el esquema ni la ingesta, y el issue no lo pide. Pruebas: tests/test_issue_02.py cubre los tres casos (dos sensores a las 10:00, reenvío de AQP-07 y resumen del 12/11/2026 con ambos sensores) y pasa 3 de 3. La suite completa da 3 aprobadas y 4 fallidas, como reportó el ejecutor. Los fallos visibles son de ISSUE-01 (supera_umbral(Decimal('150.4')) devuelve False por el int(pm10) y por eso las lecturas en alerta dan 0 en vez de 1) y de ISSUE-03 (el promedio de PM2.5 da 46.67 en vez de 70 porque cuenta None como 0). No dependen de la clave de deduplicación, así que no son regresiones de este cambio. Nota: QA-01 se cumple dentro del alcance de este issue, pero la suite no quedará en verde hasta resolver ISSUE-01 e ISSUE-03 en sus propios cambios."
+ }
+]

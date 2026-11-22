@@ -1,0 +1,55 @@
+[
+ {
+  "pensamiento": "Primero leo el issue para saber qué prueba debe pasar y qué cambio se pide exactamente.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "issues/ISSUE-02.md"
+  }
+ },
+ {
+  "pensamiento": "El issue indica que la deduplicación debe considerar el mismo sensor y la misma hora, no solo la hora. Leo la prueba que reproduce el error para ver qué función y qué comportamiento exacto se espera.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "La prueba importa Medicion, resumen_diario y sin_duplicados desde airemisti/reportes/resumen.py. Leo ese archivo para ver cómo se calcula hoy la clave de duplicado; sospecho que usa solo la hora y debe usar (sensor, hora).",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py"
+  }
+ },
+ {
+  "pensamiento": "Confirmado: sin_duplicados usa solo m.medido_en como clave, así que una segunda lectura de otro sensor a la misma hora se descarta. El cambio mínimo que pide el issue es usar la clave (sensor, medido_en); resumen_diario no necesita cambios porque ya llama a sin_duplicados.",
+  "accion": "editar_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py",
+   "antes": "        if m.medido_en in vistas:\n            continue\n        vistas.add(m.medido_en)",
+   "despues": "        clave = (m.sensor, m.medido_en)\n        if clave in vistas:\n            continue\n        vistas.add(clave)"
+  }
+ },
+ {
+  "pensamiento": "La edición quedó aplicada: ahora la clave de duplicado es (sensor, medido_en). Ejecuto las pruebas para confirmar que tests/test_issue_02.py pasa y que no se rompió ninguna otra prueba.",
+  "accion": "ejecutar_pruebas",
+  "args": {}
+ },
+ {
+  "pensamiento": "El resumen muestra 4 fallos, pero los mensajes visibles hablan de supera_umbral(Decimal('150.4')) y de un promedio que da 46.67 en vez de 70; eso parece venir del umbral (int() trunca) y de promedio (cuenta los None como 0), que no tocan sin_duplicados ni son parte del issue. No debo corregirlos sin que el issue lo pida. Primero confirmo si las 3 pruebas de tests/test_issue_02.py pasan, ejecutando solo ese archivo en modo detallado.",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest tests/test_issue_02.py -v"
+  }
+ },
+ {
+  "pensamiento": "Las 3 pruebas de tests/test_issue_02.py pasan. Antes de redactar el resumen necesito saber exactamente qué 4 pruebas fallan en la suite completa, para informar con precisión que son ajenas al issue (supera_umbral con int() que trunca, promedio que cuenta None como 0) y no tocarlas. Ejecuto la suite con el listado corto de fallos.",
+  "accion": "ejecutar_comando",
+  "args": {
+   "comando": "python -m pytest -q -rf"
+  }
+ },
+ {
+  "pensamiento": "Ya tengo el listado exacto: las 4 pruebas que fallan son de tests/test_issue_01.py (supera_umbral usa int(), que trunca 150.4 a 150) y de tests/test_issue_03.py (promedio cuenta los None como 0 y no devuelve None cuando no hay valores). Son defectos de otros issues que este issue no pide corregir, así que no los toco. Las 3 pruebas de tests/test_issue_02.py pasan y el cambio fue mínimo. Redacto el resumen final.",
+  "final": "Issue #2 resuelto.\n\nCausa: en airemisti/reportes/resumen.py, sin_duplicados() usaba solo la hora (m.medido_en) como clave de duplicado. Por eso la lectura de AQP-12 de las 10:00 se descartaba cuando AQP-07 ya había medido a esa misma hora.\n\nCambio (solo en sin_duplicados): la clave de duplicado ahora es (m.sensor, m.medido_en). Solo se descarta la lectura que el mismo sensor reenvía con la misma hora (RF-02, QA-01). Dos sensores distintos a la misma hora cuentan como dos lecturas. resumen_diario no cambió porque ya llama a sin_duplicados. No modifiqué nada en tests/.\n\nResultado de las pruebas:\n- python -m pytest tests/test_issue_02.py -v: 3 passed (dos sensores a la misma hora no son duplicados; la lectura reenviada por el mismo sensor sí lo es; el resumen incluye a AQP-07 y AQP-12).\n- Suite completa: 4 failed, 3 passed. Las 4 que fallan no tienen relación con este issue y ya fallaban por defectos de otro código:\n  - tests/test_issue_01.py (2 pruebas): supera_umbral() hace int(pm10), que trunca 150.4 a 150, así que no marca la alerta.\n  - tests/test_issue_03.py (2 pruebas): promedio() cuenta los PM2.5 None como 0 (da 46.67 en vez de 70) y devuelve 0 en vez de None cuando no hay ningún valor.\nNo las corregí porque el issue #2 no lo pide. Corresponden a los issues #1 y #3."
+ }
+]

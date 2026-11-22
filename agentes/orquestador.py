@@ -8,6 +8,7 @@ Uso:
   python orquestador.py --issue 02 --modo multi --memoria        # E5: planificador + actor-crítico
   python orquestador.py --issue 02 --modo democratico --memoria  # Reto A: tres revisores votan
   --modelo interactivo  copia el contexto a su asistente y graba la respuesta (sin clave de API)
+  --aprobar             E6: un integrante aprueba cada edición desde la consola (s/n)
 """
 import argparse
 import json
@@ -17,7 +18,7 @@ import shutil
 from agente.herramientas import Herramientas
 from agente.modelos import ModeloGrabado, ModeloInteractivo
 from agente.nucleo import Agente
-from agente.politica import Politica
+from agente.politica import Politica, aprobar_por_consola
 
 RAIZ = pathlib.Path(__file__).parent
 MAX_RONDAS = 2
@@ -56,8 +57,11 @@ class Corrida:
         return Agente(rol, modelo, h, politica, objetivo, str(RAIZ / "trazas" / self.nombre / f"{rol}{sufijo}.jsonl"))
 
 
-def politica_ejecutor(permitidas):
-    return Politica(herramientas_permitidas=set(permitidas), comandos_permitidos=(r"^python -m pytest\b",), max_pasos=12)
+def politica_ejecutor(permitidas, aprobar):
+    p = Politica(herramientas_permitidas=set(permitidas), comandos_permitidos=(r"^python -m pytest\b",), max_pasos=12)
+    if aprobar:
+        p.aprobar_edicion = aprobar_por_consola
+    return p
 
 
 def objetivo_ejecutor(issue, h, permitidas, plan="", retro=""):
@@ -88,13 +92,13 @@ def aprobado(veredictos):
     return votos * 2 > len(veredictos)
 
 
-def correr(issue, modo, memoria=False, interactivo=False, fabrica=None):
+def correr(issue, modo, memoria=False, aprobar=False, interactivo=False, fabrica=None):
     permitidas = BASE | MEMORIA if memoria else BASE
     corrida = Corrida(f"issue{issue}-{modo}", interactivo, fabrica)
     h = preparar_sandbox()
     agentes = []
     if modo == "unico":
-        a = corrida.agente("agente", 1, h, politica_ejecutor(permitidas), objetivo_ejecutor(issue, h, permitidas))
+        a = corrida.agente("agente", 1, h, politica_ejecutor(permitidas, aprobar), objetivo_ejecutor(issue, h, permitidas))
         print(f"AGENTE:\n{a.ejecutar()}\n")
         agentes.append(a)
     else:
@@ -109,7 +113,7 @@ def correr(issue, modo, memoria=False, interactivo=False, fabrica=None):
         focos = list(FOCOS) if modo == "democratico" else [None]
         retro = ""
         for ronda in range(1, MAX_RONDAS + 1):
-            ej = corrida.agente("ejecutor", ronda, h, politica_ejecutor(permitidas),
+            ej = corrida.agente("ejecutor", ronda, h, politica_ejecutor(permitidas, aprobar),
                                 objetivo_ejecutor(issue, h, permitidas, plan, retro))
             resumen = ej.ejecutar()
             veredictos = revisar(corrida, issue, h, ronda, resumen, focos)
@@ -133,6 +137,7 @@ if __name__ == "__main__":
     ap.add_argument("--issue", required=True, choices=["01", "02", "03"])
     ap.add_argument("--modo", default="unico", choices=["unico", "multi", "democratico"])
     ap.add_argument("--memoria", action="store_true")
+    ap.add_argument("--aprobar", action="store_true")
     ap.add_argument("--modelo", default="grabado", choices=["grabado", "interactivo"])
     args = ap.parse_args()
-    correr(args.issue, args.modo, args.memoria, args.modelo == "interactivo")
+    correr(args.issue, args.modo, args.memoria, args.aprobar, args.modelo == "interactivo")

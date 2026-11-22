@@ -1,0 +1,44 @@
+[
+ {
+  "pensamiento": "Primero reviso el diff real para confirmar que el único cambio es la clave (sensor, medido_en) en sin_duplicados de airemisti/reportes/resumen.py y que no se tocaron pruebas ni otros archivos.",
+  "accion": "ver_cambios",
+  "args": {}
+ },
+ {
+  "pensamiento": "El diff coincide con lo descrito: solo cambia la clave de unicidad en sin_duplicados a (m.sensor, m.medido_en), usada en la comprobación y en vistas.add, sin tocar pruebas ni otros archivos. Ahora ejecuto la suite para confirmar que las 3 pruebas de tests/test_issue_02.py pasan y que los 4 fallos restantes son solo los de test_issue_01 y test_issue_03 que reporta el ejecutor.",
+  "accion": "ejecutar_pruebas",
+  "args": {}
+ },
+ {
+  "pensamiento": "El resumen coincide en el total (4 failed, 3 passed), pero la salida no muestra los nombres de las pruebas. Solo se ven 3 mensajes de error para 4 fallos: supera_umbral(150.4) corresponde a ISSUE-01 y el promedio 46.67 frente a 70 a ISSUE-03, pero 'assert 0 == 1' no se puede atribuir con lo que tengo. Todavía no puedo confirmar que las 3 aprobadas sean las de tests/test_issue_02.py ni que ningún fallo venga de ese archivo. Leo tests/test_issue_02.py para ver cuántas pruebas tiene y si cubren los dos sensores a las 10:00, el reenvío del mismo sensor y el resumen del 12/11/2026. Después revisaré test_issue_01 y test_issue_03 para ubicar cada fallo.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_02.py"
+  }
+ },
+ {
+  "pensamiento": "tests/test_issue_02.py tiene exactamente 3 pruebas y cubren lo que pide el issue: AQP-07 y AQP-12 a las 10:00 no son duplicados (esperado 2), el reenvío de AQP-07 a la misma hora sí lo es (esperado 1) y el resumen del 12/11/2026 incluye a ambos sensores. Con la clave (sensor, medido_en) del diff, las tres deberían pasar. Como la suite tiene 7 pruebas en total (3 + 2 + 2, según el ejecutor), las 3 aprobadas solo pueden ser las del issue 02 si los 4 fallos están en test_issue_01 y test_issue_03. Todavía tengo que ubicar el 'assert 0 == 1', que no se puede atribuir por el mensaje. Por el texto parece un conteo de alertas (0 en vez de 1) relacionado con supera_umbral(150.4) de ISSUE-01. Leo tests/test_issue_01.py para confirmarlo y comprobar que sus lecturas usan horas distintas, es decir, que no dependen de sin_duplicados.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_01.py"
+  }
+ },
+ {
+  "pensamiento": "tests/test_issue_01.py tiene 2 pruebas y ambas dependen de supera_umbral con 150.4. La primera corresponde al mensaje supera_umbral(Decimal('150.4')) = False. La segunda espera lecturas_en_alerta == 1 y obtiene 0, así que el 'assert 0 == 1' sale de aquí. Sus dos lecturas son de AQP-07 a las 9:40 y a las 9:41, con horas distintas, por lo que sin_duplicados no descarta ninguna ni con la clave vieja ni con la nueva. Esos 2 fallos son de ISSUE-01 y no regresiones. Con eso quedan 2 fallos por atribuir a test_issue_03, pero la salida solo muestra uno (46.67 frente a 70). Leo tests/test_issue_03.py para confirmar que tiene 2 pruebas, que el segundo fallo (sin PM2.5 devuelve 0 en vez de None) está ahí y que sus lecturas tampoco comparten sensor y hora. Así verifico que la suite tiene 7 pruebas en total y que las 3 aprobadas son las de test_issue_02.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "tests/test_issue_03.py"
+  }
+ },
+ {
+  "pensamiento": "tests/test_issue_03.py tiene 2 pruebas y en ambas hay un solo sensor (AQP-18) con horas distintas (8:50, 9:50 y 10:50), así que sin_duplicados no descarta nada ni con la clave vieja ni con la nueva. La primera corresponde al mensaje 46.67 frente a 70: el PM2.5 None se cuenta como 0, (0+60+80)/3. Con eso tengo atribuidos 3 de los 4 fallos (2 de test_issue_01 y el primero de test_issue_03). El cuarto debería ser test_issue_03_sin_ningun_pm25_el_promedio_queda_vacio, pero su mensaje no aparece en la salida. Por conteo, sería ese o alguna prueba de test_issue_02 (y entonces esa segunda de test_issue_03 tendría que pasar). Para descartarlo sin depender del resumen del ejecutor, leo airemisti/reportes/resumen.py. Quiero confirmar que promedio() devuelve 0 y no None cuando no hay ningún PM2.5, lo que haría fallar esa prueba. También quiero verificar que resumen_diario agrupa por m.sensor sobre sin_duplicados y filtra solo por fecha, de modo que test_issue_02_el_resumen_incluye_a_los_dos_sensores pase con la nueva clave.",
+  "accion": "leer_archivo",
+  "args": {
+   "ruta": "airemisti/reportes/resumen.py"
+  }
+ },
+ {
+  "pensamiento": "resumen.py confirma lo que faltaba. promedio([None]) no entra en el 'if not valores' porque la lista no está vacía, y devuelve sum(0)/1 = Decimal('0'), que no es None. Por eso test_issue_03_sin_ningun_pm25_el_promedio_queda_vacio falla, y ese es el cuarto fallo cuyo mensaje no aparecía en la salida. Así quedan atribuidos los 4: 2 de test_issue_01 (int(pm10) trunca 150.4 y da False, y además lecturas_en_alerta queda en 0 en vez de 1) y 2 de test_issue_03 (None contado como 0: 46.67 frente a 70; y 0 en vez de None). Como la suite tiene 7 pruebas (3+2+2), las 3 aprobadas son exactamente las de test_issue_02. sin_duplicados usa la clave (m.sensor, m.medido_en) en la comprobación y en vistas.add. resumen_diario agrupa por m.sensor sobre sin_duplicados y filtra solo por fecha, así que AQP-07 y AQP-12 a las 10:00 se conservan, el reenvío de AQP-07 se descarta y el resumen del 12/11/2026 incluye a ambos. Los fallos restantes usan horas distintas y no dependen de la clave, así que no son regresiones. El diff es mínimo, no toca pruebas y se mantiene dentro del alcance.",
+  "final": "APROBADO. El diff solo cambia airemisti/reportes/resumen.py, en sin_duplicados: la clave de unicidad pasa de m.medido_en a (m.sensor, m.medido_en) y se usa tanto en la comprobación como en vistas.add. No se modificaron pruebas ni otros archivos. Verificación: la suite da 4 failed, 3 passed sobre 7 pruebas (3 de test_issue_02, 2 de test_issue_01 y 2 de test_issue_03). Ubiqué cada fallo. (1) test_issue_01_un_pm10_con_decimales_sobre_el_umbral_es_alerta: supera_umbral(Decimal('150.4')) da False porque int(pm10) trunca a 150. (2) test_issue_01_el_resumen_cuenta_en_alerta_la_lectura_de_150_4: 'assert 0 == 1' en lecturas_en_alerta, por la misma causa. (3) test_issue_03_el_promedio_de_pm25_ignora_los_valores_nulos: 46.67 frente a 70, porque promedio() cuenta el None como 0. (4) test_issue_03_sin_ningun_pm25_el_promedio_queda_vacio: promedio([None]) devuelve Decimal('0') en vez de None. Por lo tanto, las 3 aprobadas son las de tests/test_issue_02.py, que cubren lo que pide el issue: AQP-07 y AQP-12 a las 10:00 no son duplicados, el reenvío de AQP-07 a la misma hora sí lo es y el resumen del 12/11/2026 incluye a ambos sensores. resumen_diario agrupa por sensor sobre sin_duplicados y filtra solo por fecha, así que no necesitaba cambios. Los 4 fallos usan lecturas con horas distintas, no dependen de la clave de deduplicación y fallarían igual con el código original, así que no son regresiones. Corresponden a ISSUE-01 (RF-04) y a ISSUE-03, fuera del alcance de este cambio. Observación no bloqueante: la suite completa no quedará en verde hasta resolver ISSUE-01 e ISSUE-03."
+ }
+]
