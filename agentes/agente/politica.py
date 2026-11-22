@@ -34,3 +34,13 @@ class Politica:
             if self.aprobar_edicion and not self.aprobar_edicion(args):
                 return Decision(False, "El revisor humano rechazó la edición")
         return Decision(True)
+
+
+def aprobar_por_consola(args: dict, entrada=input, salida=print) -> bool:
+    """Humano en el circuito (E6): muestra la edición propuesta y acepta solo 's' o 'n'."""
+    salida(f"\n¿Aprobar la edición de {args.get('ruta')}?\n--- antes ---\n{args.get('antes')}\n--- después ---\n{args.get('despues')}")
+    while True:
+        respuesta = entrada("Responda s o n: ").strip().lower()
+        if respuesta in ("s", "n"):
+            return respuesta == "s"
+        salida("Respuesta no válida: escriba solo 's' (sí) o 'n' (no).")

@@ -24,9 +24,10 @@ def sin_duplicados(mediciones: list[Medicion]) -> list[Medicion]:
     """Quita las mediciones repetidas que reenvía un sensor al reconectarse."""
     vistas, unicas = set(), []
     for m in sorted(mediciones, key=lambda m: (m.medido_en, m.sensor)):
-        if m.medido_en in vistas:
+        clave = (m.sensor, m.medido_en)
+        if clave in vistas:
             continue
-        vistas.add(m.medido_en)
+        vistas.add(clave)
         unicas.append(m)
     return unicas
 
