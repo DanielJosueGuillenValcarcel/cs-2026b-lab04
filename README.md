@@ -67,6 +67,7 @@ flowchart TB
 - [ADR-006: Alertas solo de lecturas frescas y cola prioritaria](docs/architecture/adr/006-alertas-frescas-y-cola-prioritaria.md)
 - [ADR-007: Cola amplia en Mosquitto y acuse de aplicación](docs/architecture/adr/007-cola-amplia-y-acuse-de-aplicacion.md)
 - [ADR-008: Credenciales por sensor y ACL con patrón](docs/architecture/adr/008-credenciales-por-sensor-y-acl-con-patron.md)
+- [ADR-010: Arquitectura del sistema agéntico para corregir issues](docs/architecture/adr/010-sistema-agentico.md)
 
 ## Diseño UML (Lab 05)
 Diseño detallado de la historia crítica [HU-03: ingesta de una lectura y emisión de alerta](docs/design/historia.md), coherente con el ADR-001.
@@ -374,6 +375,45 @@ cd prompts/criterios && npx promptfoo@0.118 eval --no-cache -o resultados.json -
 ```
 
 Bitácora: [prompts/bitacora-ia.md](prompts/bitacora-ia.md).
+
+## Sistemas agénticos (Lab 10)
+
+Un sistema agéntico corrige los tres errores sembrados en el resumen diario del analista ([`src/airemisti/reportes/resumen.py`](src/airemisti/reportes/resumen.py)), cada uno descrito en [`issues/`](issues) con una prueba en [`tests/`](tests). El agente trabaja en una copia del código (`agentes/trabajo/`), sin red ni git: propone; el contrato y la política filtran; un integrante aprueba. Las decisiones del modelo están grabadas en [`agentes/trayectorias/`](agentes/trayectorias), así que todas las corridas se reproducen sin clave de API.
+
+| Documento | Contenido |
+|---|---|
+| [Lienzo de diseño](agentes/diseno/lienzo.md) | 7 decisiones: agente o flujo, arquetipo, herramientas, memoria, coordinación, rol humano y control |
+| [Coordinación](agentes/coordinacion.md) | E5: agente único frente a planificador + actor-crítico en ISSUE-02 |
+| [Delegación](agentes/delegacion.md) | E6: aprobación en consola y hoja de ruta ejecutor → revisor → colaborador → gobernador |
+| [Observación](agentes/observacion.md) | E7 y Reto A: métricas de las trazas y análisis |
+| [ADR-010](docs/architecture/adr/010-sistema-agentico.md) | Arquetipo, coordinación, herramientas, memoria, límites y rol humano |
+
+### Máquina de estados del agente
+![Máquina de estados del agente](agentes/diseno/img/estados.png)
+
+### Trayectoria del actor-crítico (ISSUE-02)
+![Trayectoria del issue 2](agentes/trazas/issue02-multi/trayectoria.png)
+
+### Métricas de las trazas
+| Issue | Variante | Pasos | Rondas | Rechazos del contrato | Acciones bloqueadas | Contexto final (caracteres) |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| ISSUE-01 | Agente único (E2) | 8 | — | 0 | 0 | 14 410 |
+| ISSUE-03 | Agente único con `mapa_repo` y notas (E4) | 9 | — | 0 | 0 | 15 138 |
+| ISSUE-02 | Agente único (E5) | 8 | — | 0 | 0 | 13 696 |
+| ISSUE-02 | Planificador + ejecutor + revisor (E5) | 16 | 1 | 0 | 0 | 39 739 |
+| ISSUE-02 | Tres revisores que votan (Reto A) | 24 | 1 | 0 | 0 | 57 437 |
+
+El actor-crítico produjo el mismo cambio que el agente único con el doble de pasos y casi el triple de contexto; los tres revisores del Reto A aprobaron por unanimidad sin hallazgos nuevos. Por parsimonia, AireMisti usa un agente único para errores del módulo de reportes y reserva el revisor para cambios en ingesta y alertas.
+
+```bash
+cd agentes
+pytest pruebas_agente                                   # contrato, política, herramientas y humano
+python orquestador.py --issue 02 --modo multi --memoria # reproduce una corrida grabada
+python agente/traza.py trazas/issue02-multi             # diagrama Mermaid y métricas
+python orquestador.py --issue 01 --modo unico --aprobar # E6: aprobar la edición en consola (s/n)
+```
+
+Bitácora: [agentes/bitacora-ia.md](agentes/bitacora-ia.md).
 
 ## Reflexión sobre el uso de la IA
 La IA aceleró la exploración: en minutos generó tres alternativas, los borradores de los diagramas y de los ADR, y su papel de "abogado del diablo" nos mostró riesgos que no habíamos considerado, como la pérdida de mensajes si el broker se reinicia.

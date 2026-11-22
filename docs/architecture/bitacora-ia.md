@@ -56,3 +56,9 @@ Herramienta: Claude. La IA propuso escenarios, tácticas, código de simulación
 ## Laboratorio 09 — Prompts como código
 
 Herramientas: Claude como asistente y Claude Opus 5.5 y Claude Haiku 5.5 para las grabaciones. La bitácora completa, con 9 interacciones, está en [prompts/bitacora-ia.md](../../prompts/bitacora-ia.md). Allí se registran una sugerencia de la IA rechazada con evidencia (la función que verificaba el PM10: 10 falsos positivos y 1 falso negativo sobre las grabaciones reales) y los 5 falsos positivos de nuestras propias aserciones. Uno de ellos destapó un error real del guardrail del Lab 07.
+
+---
+
+## Laboratorio 10 — Sistemas agénticos
+
+Herramientas: Claude como asistente y Claude Opus 5.5 para las decisiones grabadas de los agentes (una decisión con Claude Sonnet 5.5). La bitácora completa, con 7 interacciones, está en [agentes/bitacora-ia.md](../../agentes/bitacora-ia.md). Allí se registran el issue sugerido que contradecía RF-04, el sandbox que filtraba rutas del original por `__pycache__`, los dos defectos del contrato que encontraron nuestras pruebas y el error del planificador que el ejecutor descartó con una búsqueda.
