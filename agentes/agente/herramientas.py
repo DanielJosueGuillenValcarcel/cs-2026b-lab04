@@ -93,7 +93,7 @@ class Herramientas:
                 if isinstance(n, ast.ClassDef):
                     firmas += [self._firma(m, "    ") for m in n.body if isinstance(m, ast.FunctionDef)]
             if firmas:
-                lineas.append(f"{p.relative_to(self.raiz)}:")
+                lineas.append(f"{p.relative_to(self.raiz).as_posix()}:")
                 lineas += firmas
         return "\n".join(lineas) or "(sin archivos .py)"
 
