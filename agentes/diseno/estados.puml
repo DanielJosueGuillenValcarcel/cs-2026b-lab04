@@ -1,0 +1,38 @@
+@startuml estados
+skinparam dpi 200
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam state {
+  BackgroundColor #EEF2F8
+  BorderColor #1A3A5C
+  ArrowColor #444444
+}
+title Agente de AireMisti IoT como máquina de estados (agente/nucleo.py + politica.py)
+[*] --> Decidiendo : objetivo recibido
+Decidiendo : el modelo propone
+Decidiendo : pensamiento + acción
+Decidiendo --> ValidandoContrato : decisión JSON
+ValidandoContrato : ¿cumple el protocolo?
+ValidandoContrato --> Decidiendo : [inválida] / ERROR DE CONTRATO
+ValidandoContrato --> Finalizado : [es "final"]
+ValidandoContrato --> EvaluandoPolitica : [es "accion"]
+EvaluandoPolitica --> Decidiendo : [denegada] / BLOQUEADO
+EvaluandoPolitica --> LimiteAlcanzado : [paso > max_pasos]
+EvaluandoPolitica --> Ejecutando : [permitida y no es edición]
+EvaluandoPolitica --> EsperandoAprobacion : [editar_archivo y aprobar_edicion activa]
+EsperandoAprobacion : aprobar_por_consola
+EsperandoAprobacion : muestra antes / después
+EsperandoAprobacion --> EsperandoAprobacion : [respuesta distinta de s / n]
+EsperandoAprobacion --> Ejecutando : [s]
+EsperandoAprobacion --> Decidiendo : [n] / BLOQUEADO
+state EsperandoAprobacion #FFF4D6
+Ejecutando : herramienta real
+Ejecutando --> Observando : resultado o error
+Observando : se agrega al historial
+Observando --> Decidiendo
+Finalizado --> [*] : respuesta final
+LimiteAlcanzado --> [*] : sin respuesta
+state Finalizado #EAF4EC
+state LimiteAlcanzado #F4CCC3
+@enduml

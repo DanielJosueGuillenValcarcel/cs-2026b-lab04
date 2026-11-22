@@ -4,3 +4,4 @@ __pycache__/
 reportes/
 prompts/**/resultados.json
 prompts/**/resultados.html
+agentes/trabajo/

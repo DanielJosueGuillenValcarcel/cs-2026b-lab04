@@ -15,7 +15,8 @@ on:
       - "prompts/seguridad/**.dot"
       - "prompts/**/evaluar-*.json"
       - "prompts/graficos.py"
-
+      - "agentes/diseno/**.puml"
+      - "agentes/trazas/**.mmd"
 concurrency:
   group: render-${{ github.ref }}
   cancel-in-progress: true
@@ -82,11 +83,17 @@ jobs:
           pip install pyyaml
           dot -Tpng -Gdpi=130 -o prompts/seguridad/img/defensa-capas.png prompts/seguridad/defensa-capas.dot
           python prompts/graficos.py
+      - name: Renderizar sistema agéntico (Lab 10)
+        run: |
+          java -jar /tmp/plantuml.jar -tpng -o img agentes/diseno/estados.puml
+          for f in agentes/trazas/*/trayectoria.mmd; do
+            mmdc -p /tmp/puppeteer.json -i "$f" -o "${f%.mmd}.png" -s 2 -b white
+          done
       - name: Commit de imágenes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/architecture/diagramas/img docs/design/img docs/design/patrones/img docs/architecture/c4/export docs/architecture/c4/img prompts/img prompts/seguridad/img
+          git add docs/architecture/diagramas/img docs/design/img docs/design/patrones/img docs/architecture/c4/export docs/architecture/c4/img prompts/img prompts/seguridad/img agentes/diseno/img agentes/trazas
           git diff --cached --quiet && exit 0
           git commit -m "CI: regenerar imágenes de diagramas"
           git pull --rebase origin "${GITHUB_REF_NAME}"
